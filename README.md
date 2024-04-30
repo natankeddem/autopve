@@ -43,5 +43,5 @@ GUI configurable web server for Proxmox automated installation.
 
 ## Usage
 
-The configuration GUI can be accessed at `http://host:8080`. Answers are hosted at http://`host:8080/answer`.
+The configuration GUI can be accessed at `http://host:8080`. Answers are hosted at `http://host:8080/answer`.
 
