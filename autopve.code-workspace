@@ -1,0 +1,48 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"name": "Python: main.py",
+				"type": "python",
+				"request": "launch",
+				"program": "main.py",
+				"console": "integratedTerminal",
+				"justMyCode": false
+			},
+			{
+				"name": "Python: Current File",
+				"type": "python",
+				"request": "launch",
+				"program": "${file}",
+				"console": "integratedTerminal",
+				"justMyCode": false
+			}
+		]
+	},
+	"settings": {
+		"[python]": {
+			"editor.defaultFormatter": "ms-python.black-formatter"
+		},
+		"editor.defaultFormatter": "ms-python.black-formatter",
+		"black-formatter.args": [
+			"-l",
+			"180"
+		],
+		"python.terminal.activateEnvironment": true,
+		"editor.suggest.showStatusBar": true,
+		"pylint.args": [
+			"\"pylint.args\": [\"--disable=C0115\", \"--disable=C0116\", \"--disable=C0301\",\"--max-line-length=180\"]"
+		],
+		"python.terminal.activateEnvInCurrentTerminal": true,
+		"terminal.integrated.enablePersistentSessions": true,
+		"[json]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		}
+	}
+}

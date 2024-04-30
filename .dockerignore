@@ -1,0 +1,11 @@
+.git/
+.vscode/
+.nicegui/
+data/
+venv/
+__pycache__/
+logs/
+notes/
+mpl/
+mysecret.py
+test.py

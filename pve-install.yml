@@ -1,0 +1,106 @@
+# ansible-playbook -i inv.yml pve-install.yml
+---
+- name: Build & Start Container
+  hosts: proxmox_host
+  gather_facts: true
+  tasks:
+    - name: Install packages required by proxmox_kvm module...
+      ansible.builtin.apt:
+        pkg:
+          - python3-proxmoxer
+          - python3-requests
+          - xz-utils
+      become: true
+    - name: Create container...
+      community.general.proxmox:
+        api_host: "{{ ansible_host }}"
+        api_user: "{{ proxmox_api_user }}"
+        api_password: "{{ proxmox_api_password }}"
+        node: "{{ proxmox_node }}"
+        hostname: "{{ lxc_hostname }}"
+        vmid: "{{ lxc_id }}"
+        cores: 2
+        disk: 8
+        memory: 2048
+        password: "{{ lxc_password }}"
+        unprivileged: true
+        pubkey: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+        storage: "{{ lxc_storage }}"
+        ostemplate: "{{ template_storage }}:vztmpl/{{ lxc_template }}"
+        netif: '{"net0":"name=eth0,ip=dhcp,bridge={{ lxc_network }}"}'
+        features:
+          - nesting=1
+        state: present
+    - name: Wait for container to build...
+      ansible.builtin.wait_for:
+        timeout: 10
+      delegate_to: localhost
+    - name: Start the container...
+      community.general.proxmox:
+        api_host: "{{ ansible_host }}"
+        api_user: "{{ proxmox_api_user }}"
+        api_password: "{{ proxmox_api_password }}"
+        node: "{{ proxmox_node }}"
+        hostname: "{{ lxc_hostname }}"
+        state: started
+        unprivileged: no
+    - name: Wait for the container to start...
+      ansible.builtin.wait_for:
+        host: "{{ lxc_hostname }}"
+        port: 22
+        sleep: 3
+        connect_timeout: 5
+        timeout: 60
+- name: Install App
+  hosts: lxc_hostname
+  gather_facts: true
+  tasks:
+    - name: Package update cache...
+      ansible.builtin.apt:
+        update_cache: true
+    - name: "Install apt packages required by {{ app_name }}..."
+      ansible.builtin.apt:
+        pkg:
+          - git
+          - python3-pip
+          - python3-venv
+    - name: "Install pip packages required by {{ app_name }}..."
+      ansible.builtin.pip:
+        extra_args: --break-system-packages
+        name:
+          - github3.py
+    - name: Get latest release of a public repository
+      community.general.github_release:
+        user: natankeddem
+        repo: "{{ app_name }}"
+        action: latest_release
+      register: repo
+    - name: Clone repo...
+      ansible.builtin.git:
+        repo: "https://github.com/natankeddem/{{ app_name }}.git"
+        dest: /root/{{ app_name }}
+        version: "{{ repo.tag }}"
+    - name: "Install pip packages required by {{ app_name }}..."
+      ansible.builtin.pip:
+        virtualenv_command: python3 -m venv
+        virtualenv: "/root/{{ app_name }}/venv"
+        requirements: "/root/{{ app_name }}/requirements.txt"
+        state: present
+    - name: "Install {{ app_name }} serivce."
+      ansible.builtin.copy:
+        src: "/root/{{ app_name }}/resources/{{ app_name }}.service"
+        dest: "/etc/systemd/system/{{ app_name }}.service"
+        remote_src: yes
+        owner: root
+        mode: "0755"
+        force: true
+    - name: Reload service daemon...
+      become: true
+      systemd:
+        daemon_reload: true
+    - name: "Start {{ app_name }}..."
+      become: true
+      systemd:
+        name: "{{ app_name }}"
+        state: started
+        enabled: true

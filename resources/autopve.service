@@ -1,0 +1,11 @@
+[Unit]
+Description=autopve Application Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/autopve
+ExecStart=/root/autopve/venv/bin/python /root/autopve/main.py
+
+[Install]
+WantedBy=multi-user.target

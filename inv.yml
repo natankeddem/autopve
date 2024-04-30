@@ -1,0 +1,20 @@
+all:
+  hosts:
+    proxmox_host:
+      ansible_host: ##PROXMOXHOST##
+    lxc_hostname:
+      ansible_host: autopve
+  vars:
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+    ansible_user: root
+    proxmox_api_password: ##PASSWORD##
+    proxmox_api_user: root@pam
+    proxmox_node: ##PROXMOXNODE##
+    template_storage: local
+    lxc_template: debian-12-standard_12.2-1_amd64.tar.zst
+    lxc_hostname: autopve
+    lxc_id: 200
+    lxc_password: ##PASSWORD##
+    lxc_storage: local
+    lxc_network: vmbr0
+    app_name: autopve
