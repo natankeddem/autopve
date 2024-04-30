@@ -40,3 +40,8 @@ GUI configurable web server for Proxmox automated installation.
    ```bash
    ansible-playbook -i inv.yml pve-install.yml
    ```
+
+## Usage
+
+The configuration GUI can be accessed at `http://host:8080`. Answers are hosted at http://host:8080/answer.
+
