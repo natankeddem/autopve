@@ -1,14 +1,15 @@
 version: "3.8"
 
 services:
-  autopve:
-    image: autopve:latest
+  bale:
+    image: ghcr.io/natankeddem/autopve:latest
     ports:
       - 8080:8080
-    # volumes:
-    #   - ~/path/to/data:/app/data
-    #   - ~/path/to/logs:/app/logs
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ~/path/to/data:/app/data
+      - ~/path/to/logs:/app/logs
     environment:
       - PUID=1000
       - PGID=1000
-      - VERBOSE_LOGGING=TRUE # Optional: Will enable additional logging. Warning logs may contain passwords in plaintext. Sanitize before sharing.
+      - VERBOSE_LOGGING=TRUE # Optional
