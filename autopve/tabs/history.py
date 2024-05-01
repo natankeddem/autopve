@@ -84,7 +84,7 @@ class History(Tab):
                                     el.JsonEditor(properties=properties)
                                 with ui.tab_panel(response_tab):
                                     response = e.args["data"]["response"]
-                                    ui.code(response).tailwind.height("[640px]").width("[640px]")
+                                    ui.code(response).tailwind.height("[320px]").width("[640px]")
 
                         with el.WRow() as row:
                             row.tailwind.height("[40px]")

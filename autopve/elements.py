@@ -371,4 +371,4 @@ class JsonEditor(ui.json_editor):
     def __init__(self, properties: Dict, *, on_select: Optional[Callable] = None, on_change: Optional[Callable] = None) -> None:
         super().__init__(properties, on_select=on_select, on_change=on_change)
         self.classes("jse-theme-dark")
-        self.tailwind.height("[640px]").width("[640px]")
+        self.tailwind.height("[320px]").width("[640px]")
