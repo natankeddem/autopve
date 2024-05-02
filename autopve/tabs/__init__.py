@@ -60,7 +60,7 @@ class Tab:
                                 "control": el.FInput(
                                     key,
                                     password=True if key == "root_password" else False,
-                                    autocomplete=keys[key]["options"] if "options" in keys[key] else None,
+                                    autocomplete=keys[key]["options"] if key in keys and "options" in keys[key] else None,
                                     on_change=lambda e, key=key: set_key(key, e.value),
                                 ),
                                 "row": key_row,
@@ -78,7 +78,7 @@ class Tab:
 
         def set_key(key, value: str):
             if len(value) > 0:
-                if "type" in keys[key]:
+                if key in keys and "type" in keys[key]:
                     if keys[key]["type"] == "list":
                         self.picked_keys[key] = value[1:-1].split(",")
                     elif keys[key]["type"] == "int":
