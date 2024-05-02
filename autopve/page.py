@@ -20,13 +20,13 @@ def build():
     @app.post("/answer")
     async def post_answer(request: Request) -> PlainTextResponse:
         def response(answer: str, system_info: Dict[str, Any], data: Dict[str, Any]):
-            toml = tomlkit.dumps(default_data)
+            toml = tomlkit.dumps(data)
             toml_fixed = ""
             for line in toml.splitlines():
                 if len(line) > 0 and line[0] == '"':
                     line = line.replace('"', "", 2)
                 toml_fixed = toml_fixed + line + "\n"
-            r = history.Request(answer=answer, response=toml_fixed, system_info=dict(system_info))
+            r = history.Request(answer=answer, response=toml_fixed, system_info=copy.deepcopy(system_info))
             history.History.add_history(r)
             for client in Client.instances.values():
                 if not client.has_socket_connection:
@@ -37,12 +37,12 @@ def build():
 
         system_info = await request.json()
         system_info_raw = json.dumps(system_info)
-        default_data = dict(storage.answer("Default"))
+        default_data = copy.deepcopy(storage.answer("Default"))
         answers = list(storage.answers.keys())
         if "Default" in answers:
             answers.remove("Default")
         for answer in answers:
-            answer_data = dict(storage.answer(answer))
+            answer_data = copy.deepcopy(storage.answer(answer))
             if "match" in answer_data:
                 if len(answer_data["match"]) > 0 and answer_data["match"] in system_info_raw:
                     if "global" in default_data and "global" in answer_data:
