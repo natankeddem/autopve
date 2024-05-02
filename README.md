@@ -1,11 +1,12 @@
 # autopve
 
 ## Demo
-[autopve_demo.webm](https://github.com/natankeddem/autopve/assets/44515217/1133abe2-97b4-421d-b33f-a833f8b6c904)
+
+[autopve_demo.webm](https://github.com/natankeddem/autopve/assets/44515217/827bdd22-5311-43c1-9452-a56fa11998aa)
 
 ## Information
 
-GUI configurable web server for Proxmox automated installation.
+GUI configurable web server for Proxmox automated installation. More information about the automated installation feature built into the Proxmox installation media can be found [here](https://pve.proxmox.com/wiki/Automated_Installation).
 
 ## Features
 
@@ -43,4 +44,11 @@ GUI configurable web server for Proxmox automated installation.
 ## Usage
 
 The configuration GUI can be accessed at `http://host:8080`. Answers are hosted at `http://host:8080/answer`.
+
+### OPNsense Setup
+
+For Unbound you will need to enable TXT records and make an appropriate host override entry.
+![image](https://github.com/natankeddem/autopve/assets/44515217/997f15b7-e46f-4320-9d19-23feffcb4fdc)
+![image](https://github.com/natankeddem/autopve/assets/44515217/e680fff0-e8b0-4236-88e9-0cd45ce1088c)
+
 
