@@ -2,9 +2,11 @@ import asyncio
 from typing import Any, Dict, List, Optional, Union
 from dataclasses import dataclass, field
 import time
+import json
+import re
 from nicegui import app, ui  # type: ignore
 from . import Tab
-import autopve.elements as el
+from autopve import elements as el
 import logging
 
 logger = logging.getLogger(__name__)
@@ -32,7 +34,7 @@ class SelectionConfirm:
         self._label = label
         self._visible = None
         self._request = None
-        self._submitted = None
+        self._submitted: Optional[asyncio.Event] = None
         with self._container:
             self._label = ui.label(self._label).tailwind().text_color("primary")
             self._done = el.IButton(icon="done", on_click=lambda: self.submit("confirm"))
@@ -66,8 +68,6 @@ class SelectionConfirm:
 
 
 class History(Tab):
-    _history: List[Dict[str, Any]] = []
-
     def _build(self):
         async def display_request(e):
             if e.args["data"]["system_info"] is not None and e.args["data"]["response"] is not None:
@@ -137,7 +137,7 @@ class History(Tab):
                             "maxWidth": 200,
                         },
                     ],
-                    "rowData": self._history,
+                    "rowData": self._share.history,
                 },
                 theme="balham-dark",
             )
@@ -160,14 +160,27 @@ class History(Tab):
         self._grid.options["rowSelection"] = row_selection
         self._grid.update()
 
-    def update_history(self):
+    def update(self):
         self._grid.update()
 
     @classmethod
     def add_history(cls, request: Request) -> None:
-        if len(cls._history) > 1000:
-            cls._history.pop(0)
-        cls._history.append({"timestamp": request.timestamp, "name": request.name, "answer": request.answer, "response": request.response, "system_info": request.system_info})
+        if len(cls._share.history) > 1000:
+            cls._share.history.pop(0)
+        cls._share.history.append(
+            {
+                "timestamp": request.timestamp,
+                "name": request.name,
+                "answer": request.answer,
+                "response": request.response,
+                "system_info": request.system_info,
+            }
+        )
+        cls._share.last_timestamp = request.timestamp
+        matches = re.findall(r"(\"[^\"]+\"\s*:\s*(\"[^\"]+\"|\d+|true|false))", json.dumps(request.system_info))
+        for match in matches:
+            if str(match[0]) not in cls._share.unique_system_information:
+                cls._share.unique_system_information.append(str(match[0]))
 
     async def _remove_history(self):
         self._set_selection(mode="multiple")
@@ -175,6 +188,6 @@ class History(Tab):
         if request == "confirm":
             rows = await self._grid.get_selected_rows()
             for row in rows:
-                self._history.remove(row)
+                self._share.history.remove(row)
             self._grid.update()
         self._set_selection()

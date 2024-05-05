@@ -1,11 +1,10 @@
 import asyncio
 from nicegui import ui  # type: ignore
 from autopve import elements as el
-import autopve.logo as logo
-from autopve.tabs import Tab
+from autopve import logo as logo
 from autopve.tabs.settings import Global, Network, Disk
 from autopve.tabs.history import History
-from autopve.tabs.system import System
+from autopve.tabs.system import MustContain, MustNotContain
 import logging
 
 logger = logging.getLogger(__name__)
@@ -42,7 +41,8 @@ class Content:
                     self._tab["disk"] = ui.tab(name="Disk").classes("text-secondary")
                     self._tab["history"] = ui.tab(name="History").classes("text-secondary")
                     if self._answer != "Default":
-                        self._tab["system"] = ui.tab(name="System").classes("text-secondary")
+                        self._tab["must_contain"] = ui.tab(name="Must Contain").classes("text-secondary")
+                        self._tab["must_not_contain"] = ui.tab(name="Must Not Contain").classes("text-secondary")
                 with ui.row().classes("items-center"):
                     self._answer_display = ui.label(self._answer).classes("text-secondary text-h4")
                     logo.show()
@@ -52,7 +52,11 @@ class Content:
 
     async def _tab_changed(self, e):
         if e.value == "History":
-            self._history.update_history()
+            self._history.update()
+        elif e.value == "Must Contain":
+            self._must_contain.update()
+        elif e.value == "Must Not Contain":
+            self._must_not_contain.update()
 
     def _build_tab_panels(self):
         self._tab_panels.clear()
@@ -62,7 +66,8 @@ class Content:
             self._disk_content = el.ContentTabPanel(self._tab["disk"])
             self._history_content = el.ContentTabPanel(self._tab["history"])
             if self._answer != "Default":
-                self._system_content = el.ContentTabPanel(self._tab["system"])
+                self._must_contain_content = el.ContentTabPanel(self._tab["must_contain"])
+                self._must_not_contain_content = el.ContentTabPanel(self._tab["must_not_contain"])
             with self._global_content:
                 self._global = Global(answer=self._answer)
             with self._network_content:
@@ -72,8 +77,10 @@ class Content:
             with self._history_content:
                 self._history = History(answer=self._answer)
             if self._answer != "Default":
-                with self._system_content:
-                    self._system = System(answer=self._answer)
+                with self._must_contain_content:
+                    self._must_contain = MustContain(answer=self._answer)
+                with self._must_not_contain_content:
+                    self._must_not_contain = MustNotContain(answer=self._answer)
 
     async def answer_selected(self, name):
         self._answer = name

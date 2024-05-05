@@ -1,9 +1,8 @@
 from typing import Optional
+from nicegui.events import KeyEventArguments
 from nicegui import ui  # type: ignore
 from autopve import elements as el
 from autopve import storage
-from autopve.tabs import Tab
-
 import logging
 
 logger = logging.getLogger(__name__)
@@ -88,7 +87,7 @@ class Drawer(object):
         save = None
 
         with ui.dialog() as answer_dialog, el.Card():
-            with el.DBody(height="[95vh]", width="[360px]"):
+            with el.DBody(height="fit", width="[320px]"):
                 with el.WColumn():
                     all_answers = list(storage.answers.keys())
                     for answer in list(storage.answers.keys()):
@@ -106,16 +105,23 @@ class Drawer(object):
                                 return False
                         return None
 
+                    def enter_submit(e: KeyEventArguments) -> None:
+                        if e.key == "Enter" and save_ea.no_errors is True:
+                            answer_dialog.submit("save")
+
                     answer_input = el.VInput(label="answer", value=" ", invalid_characters="""'`"$\\;&<>|(){}""", invalid_values=all_answers, check=answer_check, max_length=20)
                 save_ea = el.ErrorAggregator(answer_input)
                 el.DButton("SAVE", on_click=lambda: answer_dialog.submit("save")).bind_enabled_from(save_ea, "no_errors")
+                ui.keyboard(on_key=enter_submit, ignore=[])
             answer_input.value = name
 
         result = await answer_dialog
         if result == "save":
             answer = answer_input.value.strip()
             if len(answer) > 0 and name != "Default":
+                storage.answer(answer)
                 if name in storage.answers:
+                    storage.answers[answer] = storage.answer(name, copy=True)
                     del storage.answers[name]
                 for row in self._table.rows:
                     if name == row["name"]:
