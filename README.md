@@ -2,7 +2,7 @@
 
 ## Demo
 
-[autopve_demo.webm](https://github.com/natankeddem/autopve/assets/44515217/827bdd22-5311-43c1-9452-a56fa11998aa)
+https://github.com/natankeddem/autopve/assets/44515217/7c766078-a69f-4dc3-889c-6d7113fd3421
 
 ## Information
 
