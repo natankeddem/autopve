@@ -70,6 +70,8 @@ class Setting(Tab):
         def remove_key(key):
             self._scroll.remove(self._elements[key]["row"])
             del self._elements[key]
+            if key in storage.answer(self.answer)[self.type]:
+                del storage.answer(self.answer)[self.type][key]
 
         def set_key(key, value: str):
             v: Any = None
