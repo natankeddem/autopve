@@ -48,13 +48,11 @@ class System(Tab):
                 with self.scroll:
                     with ui.row() as row:
                         row.tailwind.width("full").align_items("center").justify_content("between")
-                        with ui.row() as row:
-                            row.tailwind.align_items("center")
-                            self._elements[restriction] = {
-                                "control": el.FInput(value=restriction, read_only=True),
-                                "row": row,
-                            }
-                            self._elements[restriction]["control"].tailwind.width("[420px]")
+                        self._elements[restriction] = {
+                            "control": el.FInput(value=restriction, read_only=True),
+                            "row": row,
+                        }
+                        self._elements[restriction]["control"].tailwind.width("[420px]")
                         ui.button(icon="remove", on_click=lambda _, r=restriction: remove_restriction(r))
                 if self.type not in storage.answer(self.answer):
                     storage.answer(self.answer)[self.type] = []
