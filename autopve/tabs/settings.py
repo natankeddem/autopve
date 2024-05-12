@@ -167,3 +167,14 @@ class Disk(Setting):
             "btrfs.hdsize": {"description": ""},
         }
         super().__init__(answer, type="disk-setup", keys=keys)
+
+    def key_valid(self, key: str) -> bool:
+        if super().key_valid(key) is True:
+            if "filter" in key and "disk_list" in self._elements.keys():
+                el.Notification(f"Can not add {key} when disk_list is utilized!", type="negative", timeout=5)
+                return False
+            elif key == "disk_list" and any("filter" in k for k in self._elements.keys()):
+                el.Notification("Can not add disk_list when a filter is utilized!", type="negative", timeout=5)
+                return False
+            return True
+        return False

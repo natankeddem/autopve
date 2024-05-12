@@ -102,6 +102,12 @@ async def post_answer(request: Request) -> PlainTextResponse:
             if "network" in default_data and "network" in answer_data:
                 default_data["network"].update(answer_data["network"])
             if "disk-setup" in default_data and "disk-setup" in answer_data:
+                if any("filter" in k for k in answer_data["disk-setup"]):
+                    del default_data["disk-setup"]["disk_list"]
+                if "disk_list" in answer_data["disk-setup"]:
+                    for key in list(default_data["disk-setup"].keys()):
+                        if "filter" in key:
+                            del default_data["disk-setup"][key]
                 default_data["disk-setup"].update(answer_data["disk-setup"])
             return response(answer, system_info, default_data)
     return response("Default", system_info, default_data)
