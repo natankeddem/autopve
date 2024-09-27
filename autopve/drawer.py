@@ -119,6 +119,8 @@ class Drawer(object):
         result = await answer_dialog
         if result == "save":
             answer = answer_input.value.strip()
+            if answer == name:
+                return
             if len(answer) > 0 and copy_answer or name != "Default":
                 storage.answer(answer)
                 if name in storage.answers:
