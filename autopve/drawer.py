@@ -44,6 +44,7 @@ class Drawer(object):
                         el.IButton(icon="add", on_click=self._display_answer_dialog)
                         self._buttons["remove"] = el.IButton(icon="remove", on_click=lambda: self._modify_answer("remove"))
                         self._buttons["edit"] = el.IButton(icon="edit", on_click=lambda: self._modify_answer("edit"))
+                        self._buttons["content_copy"] = el.IButton(icon="content_copy", on_click=lambda: self._modify_answer("content_copy"))
                     ui.label(text="ANSWERS").classes("text-secondary")
                 self._table = (
                     ui.table(
@@ -83,7 +84,7 @@ class Drawer(object):
             self._table.add_rows({"name": name})
             self._table.visible = True
 
-    async def _display_answer_dialog(self, name=""):
+    async def _display_answer_dialog(self, name="", copy_answer=False):
         save = None
 
         with ui.dialog() as answer_dialog, el.Card():
@@ -118,14 +119,16 @@ class Drawer(object):
         result = await answer_dialog
         if result == "save":
             answer = answer_input.value.strip()
-            if len(answer) > 0 and name != "Default":
+            if len(answer) > 0 and copy_answer or name != "Default":
                 storage.answer(answer)
                 if name in storage.answers:
                     storage.answers[answer] = storage.answer(name, copy=True)
-                    del storage.answers[name]
-                for row in self._table.rows:
-                    if name == row["name"]:
-                        self._table.remove_rows(row)
+                    if copy_answer is False:
+                        del storage.answers[name]
+                if copy_answer is False:
+                    for row in self._table.rows:
+                        if name == row["name"]:
+                            self._table.remove_rows(row)
                 self._add_answer_to_table(answer)
 
     def _modify_answer(self, mode):
@@ -155,6 +158,9 @@ class Drawer(object):
         if self._selection_mode == "edit":
             if len(e.selection) > 0 and e.selection[0]["name"] != "Default":
                 await self._display_answer_dialog(name=e.selection[0]["name"])
+        if self._selection_mode == "content_copy":
+            if len(e.selection) > 0:
+                await self._display_answer_dialog(name=e.selection[0]["name"], copy_answer=True)
         if self._selection_mode == "remove":
             if len(e.selection) > 0:
                 for row in e.selection:
