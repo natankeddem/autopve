@@ -93,14 +93,11 @@ class Drawer(object):
                     all_answers = list(storage.answers.keys())
                     for answer in list(storage.answers.keys()):
                         all_answers.append(answer.replace(" ", ""))
-                    if name != "":
-                        if name in all_answers:
-                            all_answers.remove(name)
-                        if name.replace(" ", "") in all_answers:
-                            all_answers.remove(name.replace(" ", ""))
 
                     def answer_check(value: str) -> Optional[bool]:
                         spaceless = value.replace(" ", "")
+                        if len(spaceless) == 0:
+                            return False
                         for invalid_value in all_answers:
                             if invalid_value == spaceless:
                                 return False
@@ -114,7 +111,6 @@ class Drawer(object):
                 save_ea = el.ErrorAggregator(answer_input)
                 el.DButton("SAVE", on_click=lambda: answer_dialog.submit("save")).bind_enabled_from(save_ea, "no_errors")
                 ui.keyboard(on_key=enter_submit, ignore=[])
-            answer_input.value = name
 
         result = await answer_dialog
         if result == "save":
