@@ -84,7 +84,7 @@ class Drawer(object):
             self._table.add_rows({"name": name})
             self._table.visible = True
 
-    async def _display_answer_dialog(self, name="", copy_answer=False):
+    async def _display_answer_dialog(self, name="", copy=False):
         save = None
 
         with ui.dialog() as answer_dialog, el.Card():
@@ -162,7 +162,7 @@ class Drawer(object):
                 await self._display_answer_dialog(name=e.selection[0]["name"])
         if self._selection_mode == "content_copy":
             if len(e.selection) > 0:
-                await self._display_answer_dialog(name=e.selection[0]["name"], copy_answer=True)
+                await self._display_answer_dialog(name=e.selection[0]["name"], copy=True)
         if self._selection_mode == "remove":
             if len(e.selection) > 0:
                 for row in e.selection:
