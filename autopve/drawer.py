@@ -106,6 +106,8 @@ class Drawer(object):
                     def enter_submit(e: KeyEventArguments) -> None:
                         if e.key == "Enter" and save_ea.no_errors is True:
                             answer_dialog.submit("save")
+                        elif e.key == "Escape":
+                            answer_dialog.close()
 
                     answer_input = el.VInput(label="answer", value=" ", invalid_characters="""'`"$\\;&<>|(){}""", invalid_values=all_answers, check=answer_check, max_length=20)
                 save_ea = el.ErrorAggregator(answer_input)
