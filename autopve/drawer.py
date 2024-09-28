@@ -115,19 +115,16 @@ class Drawer(object):
         result = await answer_dialog
         if result == "save":
             answer = answer_input.value.strip()
-            if answer == name:
-                return
-            if len(answer) > 0 and copy_answer or name != "Default":
-                storage.answer(answer)
-                if name in storage.answers:
-                    storage.answers[answer] = storage.answer(name, copy=True)
-                    if copy_answer is False:
-                        del storage.answers[name]
-                if copy_answer is False:
+            if name in storage.answers:
+                storage.answers[answer] = storage.answer(name, copy=True)
+                if copy is False:
+                    del storage.answers[name]
                     for row in self._table.rows:
                         if name == row["name"]:
                             self._table.remove_rows(row)
-                self._add_answer_to_table(answer)
+            else:
+                storage.answer(answer)
+            self._add_answer_to_table(answer)
 
     def _modify_answer(self, mode):
         self._hide_content()
