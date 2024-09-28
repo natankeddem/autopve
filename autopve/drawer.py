@@ -163,6 +163,7 @@ class Drawer(object):
                         if row["name"] in storage.answers:
                             del storage.answers[row["name"]]
                         self._table.remove_rows(row)
+                        return
         self._modify_answer(None)
 
     async def _clicked(self, e):
