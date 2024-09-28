@@ -55,6 +55,7 @@ class Setting(Tab):
                             "control": el.FInput(
                                 key,
                                 password=True if key == "root_password" else False,
+                                password_toggle_button=True if key == "root_password" else False,
                                 autocomplete=self.keys[key]["options"] if key in self.keys and "options" in self.keys[key] else None,
                                 on_change=lambda e, key=key: self.set_key(key, e.value),
                             ),
