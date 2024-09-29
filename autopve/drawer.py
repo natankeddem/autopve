@@ -93,6 +93,11 @@ class Drawer(object):
                     all_answers = list(storage.answers.keys())
                     for answer in list(storage.answers.keys()):
                         all_answers.append(answer.replace(" ", ""))
+                    if name != "":
+                        if name in all_answers:
+                            all_answers.remove(name)
+                        if name.replace(" ", "") in all_answers:
+                            all_answers.remove(name.replace(" ", ""))
 
                     def answer_check(value: str) -> Optional[bool]:
                         spaceless = value.replace(" ", "")
@@ -106,15 +111,18 @@ class Drawer(object):
                     def enter_submit(e: KeyEventArguments) -> None:
                         if e.key == "Enter" and save_ea.no_errors is True:
                             answer_dialog.submit("save")
+                        elif e.key == "Escape":
+                            answer_dialog.close()
 
                     answer_input = el.VInput(label="answer", value=" ", invalid_characters="""'`"$\\;&<>|(){}""", invalid_values=all_answers, check=answer_check, max_length=20)
                 save_ea = el.ErrorAggregator(answer_input)
                 el.DButton("SAVE", on_click=lambda: answer_dialog.submit("save")).bind_enabled_from(save_ea, "no_errors")
                 ui.keyboard(on_key=enter_submit, ignore=[])
+                answer_input.value = name
 
         result = await answer_dialog
-        if result == "save":
-            answer = answer_input.value.strip()
+        answer = answer_input.value.strip()
+        if result == "save" and name != answer:
             if name in storage.answers:
                 storage.answers[answer] = storage.answer(name, copy=True)
                 if copy is False:
