@@ -158,21 +158,20 @@ class Drawer(object):
 
     async def _selected(self, e):
         self._hide_content()
-        if self._selection_mode == "edit":
-            if len(e.selection) > 0 and e.selection[0]["name"] != "Default":
-                await self._display_answer_dialog(name=e.selection[0]["name"])
-        if self._selection_mode == "content_copy":
-            if len(e.selection) > 0:
-                await self._display_answer_dialog(name=e.selection[0]["name"], copy=True)
-        if self._selection_mode == "remove":
-            if len(e.selection) > 0:
-                for row in e.selection:
-                    if row["name"] != "Default":
-                        if row["name"] in storage.answers:
-                            del storage.answers[row["name"]]
-                        self._table.remove_rows(row)
-                        return
-        self._modify_answer(None)
+        if len(e.selection) == 1:
+            answer = e.selection[0]["name"]
+            if self._selection_mode == "content_copy":
+                await self._display_answer_dialog(name=answer, copy=True)
+                self._modify_answer(None)
+            elif answer == "Default":
+                self._table._props["selected"] = []
+            elif self._selection_mode == "edit":
+                await self._display_answer_dialog(name=answer)
+                self._modify_answer(None)
+            elif self._selection_mode == "remove":
+                if answer in storage.answers:
+                    del storage.answers[answer]
+                self._table.remove_rows(e.selection[0])
 
     async def _clicked(self, e):
         if "name" in e.args[1]:
