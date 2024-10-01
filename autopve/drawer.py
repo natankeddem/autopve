@@ -44,6 +44,7 @@ class Drawer(object):
                         el.IButton(icon="add", on_click=self._display_answer_dialog)
                         self._buttons["remove"] = el.IButton(icon="remove", on_click=lambda: self._modify_answer("remove"))
                         self._buttons["edit"] = el.IButton(icon="edit", on_click=lambda: self._modify_answer("edit"))
+                        self._buttons["content_copy"] = el.IButton(icon="content_copy", on_click=lambda: self._modify_answer("content_copy"))
                     ui.label(text="ANSWERS").classes("text-secondary")
                 self._table = (
                     ui.table(
@@ -83,7 +84,7 @@ class Drawer(object):
             self._table.add_rows({"name": name})
             self._table.visible = True
 
-    async def _display_answer_dialog(self, name=""):
+    async def _display_answer_dialog(self, name="", copy=False):
         save = None
 
         with ui.dialog() as answer_dialog, el.Card():
@@ -100,6 +101,8 @@ class Drawer(object):
 
                     def answer_check(value: str) -> Optional[bool]:
                         spaceless = value.replace(" ", "")
+                        if len(spaceless) == 0:
+                            return False
                         for invalid_value in all_answers:
                             if invalid_value == spaceless:
                                 return False
@@ -108,25 +111,28 @@ class Drawer(object):
                     def enter_submit(e: KeyEventArguments) -> None:
                         if e.key == "Enter" and save_ea.no_errors is True:
                             answer_dialog.submit("save")
+                        elif e.key == "Escape":
+                            answer_dialog.close()
 
                     answer_input = el.VInput(label="answer", value=" ", invalid_characters="""'`"$\\;&<>|(){}""", invalid_values=all_answers, check=answer_check, max_length=20)
                 save_ea = el.ErrorAggregator(answer_input)
                 el.DButton("SAVE", on_click=lambda: answer_dialog.submit("save")).bind_enabled_from(save_ea, "no_errors")
                 ui.keyboard(on_key=enter_submit, ignore=[])
-            answer_input.value = name
+                answer_input.value = name
 
         result = await answer_dialog
-        if result == "save":
-            answer = answer_input.value.strip()
-            if len(answer) > 0 and name != "Default":
-                storage.answer(answer)
-                if name in storage.answers:
-                    storage.answers[answer] = storage.answer(name, copy=True)
+        answer = answer_input.value.strip()
+        if result == "save" and name != answer:
+            if name in storage.answers:
+                storage.answers[answer] = storage.answer(name, copy=True)
+                if copy is False:
                     del storage.answers[name]
-                for row in self._table.rows:
-                    if name == row["name"]:
-                        self._table.remove_rows(row)
-                self._add_answer_to_table(answer)
+                    for row in self._table.rows:
+                        if name == row["name"]:
+                            self._table.remove_rows(row)
+            else:
+                storage.answer(answer)
+            self._add_answer_to_table(answer)
 
     def _modify_answer(self, mode):
         self._hide_content()
@@ -152,17 +158,20 @@ class Drawer(object):
 
     async def _selected(self, e):
         self._hide_content()
-        if self._selection_mode == "edit":
-            if len(e.selection) > 0 and e.selection[0]["name"] != "Default":
-                await self._display_answer_dialog(name=e.selection[0]["name"])
-        if self._selection_mode == "remove":
-            if len(e.selection) > 0:
-                for row in e.selection:
-                    if row["name"] != "Default":
-                        if row["name"] in storage.answers:
-                            del storage.answers[row["name"]]
-                        self._table.remove_rows(row)
-        self._modify_answer(None)
+        if len(e.selection) == 1:
+            answer = e.selection[0]["name"]
+            if self._selection_mode == "content_copy":
+                await self._display_answer_dialog(name=answer, copy=True)
+                self._modify_answer(None)
+            elif answer == "Default":
+                self._table._props["selected"] = []
+            elif self._selection_mode == "edit":
+                await self._display_answer_dialog(name=answer)
+                self._modify_answer(None)
+            elif self._selection_mode == "remove":
+                if answer in storage.answers:
+                    del storage.answers[answer]
+                self._table.remove_rows(e.selection[0])
 
     async def _clicked(self, e):
         if "name" in e.args[1]:
