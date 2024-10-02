@@ -83,14 +83,16 @@ class Setting(Tab):
         if len(value) > 0:
             if key in self.keys and "type" in self.keys[key]:
                 if self.keys[key]["type"] == "list" and len(value) > 2 and value.strip()[0] == "[" and value.strip()[-1] == "]":
-                    v = value.replace(" ", "").strip()[1:-1].replace('"', "").replace("'", "").split(",")
+                    l = value.strip()[1:-1].replace('"', "").replace("'", "").split(",")
+                    v = [v.strip() for v in l]
                 elif self.keys[key]["type"] == "int":
                     v = int(value)
                 else:
                     v = value
             else:
                 if len(value) > 2 and value.strip()[0] == "[" and value.strip()[-1] == "]":
-                    v = value.replace(" ", "").strip()[1:-1].replace('"', "").replace("'", "").split(",")
+                    l = value.strip()[1:-1].replace('"', "").replace("'", "").split(",")
+                    v = [v.strip() for v in l]
                 elif value.isnumeric():
                     v = int(value)
                 else:
