@@ -1,5 +1,4 @@
 from typing import Any, Dict, Optional
-import json
 from nicegui import ui
 from . import Tab
 from autopve import elements as el
