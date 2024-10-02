@@ -1,4 +1,5 @@
 from typing import Any, Dict, Optional
+import json
 from nicegui import ui
 from . import Tab
 from autopve import elements as el
@@ -82,15 +83,15 @@ class Setting(Tab):
         v: Any = ""
         if len(value) > 0:
             if key in self.keys and "type" in self.keys[key]:
-                if self.keys[key]["type"] == "list":
-                    v = value[1:-1].split(",")
+                if self.keys[key]["type"] == "list" and len(value) > 2 and value.strip()[0] == "[" and value.strip()[-1] == "]":
+                    v = value.replace(" ", "").strip()[1:-1].replace('"', "").replace("'", "").split(",")
                 elif self.keys[key]["type"] == "int":
                     v = int(value)
                 else:
                     v = value
             else:
                 if len(value) > 2 and value.strip()[0] == "[" and value.strip()[-1] == "]":
-                    v = value[1:-1].split(",")
+                    v = value.replace(" ", "").strip()[1:-1].replace('"', "").replace("'", "").split(",")
                 elif value.isnumeric():
                     v = int(value)
                 else:
