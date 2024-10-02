@@ -51,17 +51,27 @@ class Setting(Tab):
                     key_row.tailwind.width("full").align_items("center").justify_content("between")
                     with ui.row() as row:
                         row.tailwind.align_items("center")
-                        self._elements[key] = {
-                            "control": el.FInput(
-                                key,
+                        if key in self.keys and "options" in self.keys[key]:
+                            control = el.FSelect(
+                                label=key,
+                                options=self.keys[key]["options"],
+                                on_change=lambda e, key=key: self.set_key(key, e.value) if e.value is not None else None,
+                            )
+                        else:
+                            control = el.FInput(
+                                label=key,
                                 password=True if key == "root_password" else False,
                                 password_toggle_button=True if key == "root_password" else False,
-                                autocomplete=self.keys[key]["options"] if key in self.keys and "options" in self.keys[key] else None,
                                 on_change=lambda e, key=key: self.set_key(key, e.value),
-                            ),
+                            )
+                        self._elements[key] = {
+                            "control": control,
                             "row": key_row,
                         }
-                        self._elements[key]["control"].value = value
+                        if isinstance(control, el.FSelect):
+                            control.value = self.keys[key]["options"][0] if value == "" else value
+                        else:
+                            control.value = value
                         if key in self.keys:
                             with ui.button(icon="help"):
                                 ui.tooltip(self.keys[key]["description"])
@@ -112,7 +122,10 @@ class Setting(Tab):
 class Global(Setting):
     def __init__(self, answer: str) -> None:
         keys = {
-            "keyboard": {"description": "The keyboard layout with the following possible options"},
+            "keyboard": {
+                "description": "The keyboard layout with the following possible options",
+                "options": ["de", "de-ch", "dk", "en-gb", "en-us", "es", "fi", "fr", "fr-be", "fr-ca", "fr-ch", "hu", "is", "it", "jp", "lt", "mk", "nl", "no", "pl", "pt", "pt-br", "se", "si", "tr"]
+            },
             "country": {"description": "The country code in the two letter variant. For example, at, us or fr."},
             "fqdn": {"description": "The fully qualified domain name of the host. The domain part will be used as the search domain."},
             "mailto": {"description": "The default email address for the user root."},
@@ -129,7 +142,10 @@ class Global(Setting):
 class Network(Setting):
     def __init__(self, answer: str) -> None:
         keys = {
-            "source": {"description": "Where to source the static network configuration from. This can be from-dhcp or from-answer."},
+            "source": {
+                "description": "Where to source the static network configuration from. This can be from-dhcp or from-answer.",
+                "options": ["from-dhcp", "from-answer"]
+            },
             "cidr": {"description": "The IP address in CIDR notation. For example, 192.168.1.10/24."},
             "dns": {"description": "The IP address of the DNS server."},
             "gateway": {"description": "The IP address of the default gateway."},
