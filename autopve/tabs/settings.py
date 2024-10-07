@@ -52,9 +52,14 @@ class Setting(Tab):
                     with ui.row() as row:
                         row.tailwind.align_items("center")
                         if key in self.keys and "options" in self.keys[key]:
+                            options = self.keys[key]["options"]
+                            if value != "" and value not in self.keys[key]["options"]:
+                                options.append(value)
                             control = el.FSelect(
                                 label=key,
-                                options=self.keys[key]["options"],
+                                options=options,
+                                with_input=True,
+                                new_value_mode="add-unique",
                                 on_change=lambda e, key=key: self.set_key(key, e.value) if e.value is not None else None,
                             )
                         else:
