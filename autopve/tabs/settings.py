@@ -51,17 +51,32 @@ class Setting(Tab):
                     key_row.tailwind.width("full").align_items("center").justify_content("between")
                     with ui.row() as row:
                         row.tailwind.align_items("center")
-                        self._elements[key] = {
-                            "control": el.FInput(
-                                key,
+                        if key in self.keys and "options" in self.keys[key]:
+                            options = self.keys[key]["options"]
+                            if value != "" and value not in self.keys[key]["options"]:
+                                options.append(value)
+                            control = el.FSelect(
+                                label=key,
+                                options=options,
+                                with_input=True,
+                                new_value_mode="add-unique",
+                                on_change=lambda e, key=key: self.set_key(key, e.value) if e.value is not None else None,
+                            )
+                        else:
+                            control = el.FInput(
+                                label=key,
                                 password=True if key == "root_password" else False,
                                 password_toggle_button=True if key == "root_password" else False,
-                                autocomplete=self.keys[key]["options"] if key in self.keys and "options" in self.keys[key] else None,
                                 on_change=lambda e, key=key: self.set_key(key, e.value),
-                            ),
+                            )
+                        self._elements[key] = {
+                            "control": control,
                             "row": key_row,
                         }
-                        self._elements[key]["control"].value = value
+                        if isinstance(control, el.FSelect):
+                            control.value = self.keys[key]["options"][0] if value == "" else value
+                        else:
+                            control.value = value
                         if key in self.keys:
                             with ui.button(icon="help"):
                                 ui.tooltip(self.keys[key]["description"])
@@ -112,7 +127,36 @@ class Setting(Tab):
 class Global(Setting):
     def __init__(self, answer: str) -> None:
         keys = {
-            "keyboard": {"description": "The keyboard layout with the following possible options"},
+            "keyboard": {
+                "description": "The keyboard layout with the following possible options",
+                "options": [
+                    "de",
+                    "de-ch",
+                    "dk",
+                    "en-gb",
+                    "en-us",
+                    "es",
+                    "fi",
+                    "fr",
+                    "fr-be",
+                    "fr-ca",
+                    "fr-ch",
+                    "hu",
+                    "is",
+                    "it",
+                    "jp",
+                    "lt",
+                    "mk",
+                    "nl",
+                    "no",
+                    "pl",
+                    "pt",
+                    "pt-br",
+                    "se",
+                    "si",
+                    "tr",
+                ],
+            },
             "country": {"description": "The country code in the two letter variant. For example, at, us or fr."},
             "fqdn": {"description": "The fully qualified domain name of the host. The domain part will be used as the search domain."},
             "mailto": {"description": "The default email address for the user root."},
@@ -129,7 +173,7 @@ class Global(Setting):
 class Network(Setting):
     def __init__(self, answer: str) -> None:
         keys = {
-            "source": {"description": "Where to source the static network configuration from. This can be from-dhcp or from-answer."},
+            "source": {"description": "Where to source the static network configuration from. This can be from-dhcp or from-answer.", "options": ["from-dhcp", "from-answer"]},
             "cidr": {"description": "The IP address in CIDR notation. For example, 192.168.1.10/24."},
             "dns": {"description": "The IP address of the DNS server."},
             "gateway": {"description": "The IP address of the default gateway."},
@@ -152,19 +196,37 @@ class Disk(Setting):
                 "description": "The RAID level that should be used. Options are raid0, raid1, raid10, raidz-1, raidz-2, or raidz-3.",
                 "options": ["raid0", "raid1", "raid10", "raidz-1", "raidz-2", "raidz-3"],
             },
-            "zfs.ashift": {"description": ""},
-            "zfs.arc_max": {"description": ""},
-            "zfs.checksum": {"description": ""},
-            "zfs.compress": {"description": ""},
-            "zfs.copies": {"description": ""},
-            "zfs.hdsize": {"description": ""},
-            "lvm.hdsize": {"description": ""},
-            "lvm.swapsize": {"description": ""},
-            "lvm.maxroot": {"description": ""},
-            "lvm.maxvz": {"description": ""},
-            "lvm.minfree": {"description": ""},
+            "zfs.ashift": {
+                "description": "Defines the ashift value for the created pool. The ashift needs to be set at least to the sector-size of the underlying disks (2 to the power of ashift is the sector-size), or any disk which might be put in the pool (for example the replacement of a defective disk)."
+            },
+            "zfs.arc_max": {
+                "description": "Defines the maximum size the ARC can grow to and thus limits the amount of memory ZFS will use. See also the section on how to limit ZFS memory usage for more details."
+            },
+            "zfs.checksum": {"description": "Defines which checksumming algorithm should be used for rpool."},
+            "zfs.compress": {"description": "Defines whether compression is enabled for rpool."},
+            "zfs.copies": {
+                "description": "Defines the copies parameter for rpool. Check the zfs(8) manpage for the semantics, and why this does not replace redundancy on disk-level."
+            },
+            "zfs.hdsize": {
+                "description": "Defines the total hard disk size to be used. This is useful to save free space on the hard disk(s) for further partitioning (for example to create a swap-partition). hdsize is only honored for bootable disks, that is only the first disk or mirror for RAID0, RAID1 or RAID10, and all disks in RAID-Z[123]."
+            },
+            "lvm.hdsize": {
+                "description": "Defines the total hard disk size to be used. This way you can reserve free space on the hard disk for further partitioning (for example for an additional PV and VG on the same hard disk that can be used for LVM storage)."
+            },
+            "lvm.swapsize": {
+                "description": "Defines the size of the swap volume. The default is the size of the installed memory, minimum 4 GB and maximum 8 GB. The resulting value cannot be greater than hdsize/8."
+            },
+            "lvm.maxroot": {
+                "description": "Defines the maximum size of the root volume, which stores the operation system. The maximum limit of the root volume size is hdsize/4."
+            },
+            "lvm.maxvz": {
+                "description": "Defines the maximum size of the data volume. The actual size of the data volume is: datasize = hdsize - rootsize - swapsize - minfree Where datasize cannot be bigger than maxvz."
+            },
+            "lvm.minfree": {
+                "description": "Defines the amount of free space that should be left in the LVM volume group pve. With more than 128GB storage available, the default is 16GB, otherwise hdsize/8 will be used."
+            },
             "btrfs.raid": {
-                "description": "",
+                "description": "The RAID level that should be used. Options are raid0, raid1, and raid10",
                 "options": ["raid0", "raid1", "raid10"],
             },
             "btrfs.hdsize": {"description": ""},

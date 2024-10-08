@@ -364,7 +364,7 @@ class FSelect(ui.select):
         clearable: bool = False,
     ) -> None:
         super().__init__(options, label=label, value=value, on_change=on_change, with_input=with_input, new_value_mode=new_value_mode, multiple=multiple, clearable=clearable)
-        self.tailwind.width("64")
+        self.tailwind.width("[320px]")
 
 
 class JsonEditor(ui.json_editor):
