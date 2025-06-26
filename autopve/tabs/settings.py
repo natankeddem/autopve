@@ -162,6 +162,7 @@ class Global(Setting):
             "mailto": {"description": "The default email address for the user root."},
             "timezone": {"description": "The timezone in tzdata format. For example, Europe/Vienna or America/New_York."},
             "root_password": {"description": "The password for the root user.", "type": "str"},
+            "root-password-hashed": {"description": "The pre-hashed password for the root user, which will be written verbatim to /etc/passwd. May be used instead of root_password and can be generated using the mkpasswd tool, for example.", "type": "str"},
             "root_ssh_keys": {"description": "Optional. SSH public keys to add to the root users authorized_keys file after the installation."},
             "reboot_on_error": {
                 "description": "If set to true, the installer will reboot automatically when an error is encountered. The default behavior is to wait to give the administrator a chance to investigate why the installation failed."
