@@ -84,6 +84,15 @@ class History(Tab):
                                     el.JsonEditor(properties=properties)
                                 with ui.tab_panel(response_tab):
                                     response = e.args["data"]["response"]
+                                    lines = response.splitlines()
+                                    response_lines = []
+                                    for line in lines:
+                                        if line.strip().startswith("root_password"):
+                                            response_lines.append('root_password = "SECRET"')
+                                        else:
+                                            response_lines.append(line)
+
+                                    response = "\n".join(response_lines)
                                     ui.code(response).tailwind.height("[320px]").width("[640px]")
 
                         with el.WRow() as row:

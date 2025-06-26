@@ -66,7 +66,7 @@ class Setting(Tab):
                             control = el.FInput(
                                 label=key,
                                 password=True if key == "root_password" else False,
-                                password_toggle_button=True if key == "root_password" else False,
+                                password_toggle_button=False,
                                 on_change=lambda e, key=key: self.set_key(key, e.value),
                             )
                         self._elements[key] = {
