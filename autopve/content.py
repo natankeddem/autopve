@@ -2,7 +2,7 @@ import asyncio
 from nicegui import ui  # type: ignore
 from autopve import elements as el
 from autopve import logo as logo
-from autopve.tabs.settings import Global, Network, Disk
+from autopve.tabs.settings import Global, Network, Disk, PostInstallWebhook
 from autopve.tabs.history import History
 from autopve.tabs.system import MustContain, MustNotContain
 import logging
@@ -39,10 +39,11 @@ class Content:
                     self._tab["global"] = ui.tab(name="Global").classes("text-secondary")
                     self._tab["network"] = ui.tab(name="Network").classes("text-secondary")
                     self._tab["disk"] = ui.tab(name="Disk").classes("text-secondary")
+                    self._tab["post_install_webhook"] = ui.tab(name="Post").classes("text-secondary")
                     self._tab["history"] = ui.tab(name="History").classes("text-secondary")
                     if self._answer != "Default":
-                        self._tab["must_contain"] = ui.tab(name="Must Contain").classes("text-secondary")
-                        self._tab["must_not_contain"] = ui.tab(name="Must Not Contain").classes("text-secondary")
+                        self._tab["must_contain"] = ui.tab(name="Contains").classes("text-secondary")
+                        self._tab["must_not_contain"] = ui.tab(name="Doesn't Contain").classes("text-secondary")
                 with ui.row().classes("items-center"):
                     self._answer_display = ui.label(self._answer).classes("text-secondary text-h4")
                     logo.show()
@@ -64,16 +65,19 @@ class Content:
             self._global_content = el.ContentTabPanel(self._tab["global"])
             self._network_content = el.ContentTabPanel(self._tab["network"])
             self._disk_content = el.ContentTabPanel(self._tab["disk"])
+            self_post_install_webhook_content = el.ContentTabPanel(self._tab["post_install_webhook"])
             self._history_content = el.ContentTabPanel(self._tab["history"])
             if self._answer != "Default":
                 self._must_contain_content = el.ContentTabPanel(self._tab["must_contain"])
                 self._must_not_contain_content = el.ContentTabPanel(self._tab["must_not_contain"])
             with self._global_content:
-                self._global = Global(answer=self._answer)
+                Global(answer=self._answer)
             with self._network_content:
-                self._network = Network(answer=self._answer)
+                Network(answer=self._answer)
             with self._disk_content:
-                self._disk = Disk(answer=self._answer)
+                Disk(answer=self._answer)
+            with self_post_install_webhook_content:
+                PostInstallWebhook(answer=self._answer)
             with self._history_content:
                 self._history = History(answer=self._answer)
             if self._answer != "Default":

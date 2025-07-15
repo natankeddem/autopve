@@ -21,7 +21,7 @@ if "Default" not in answers:
             "fqdn": "pveauto.testinstall",
             "mailto": "mail@no.invalid",
             "timezone": "Europe/Vienna",
-            "root_password": "123456",
+            "root-password": "123456",
         },
         "network": {
             "source": "from-dhcp",
@@ -29,7 +29,7 @@ if "Default" not in answers:
         "disk-setup": {
             "filesystem": "zfs",
             "zfs.raid": "raid1",
-            "disk_list": ["sda", "sdb"],
+            "disk-list": ["sda", "sdb"],
         },
     }
 

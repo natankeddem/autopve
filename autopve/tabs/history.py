@@ -87,8 +87,8 @@ class History(Tab):
                                     lines = response.splitlines()
                                     response_lines = []
                                     for line in lines:
-                                        if line.strip().startswith("root_password"):
-                                            response_lines.append('root_password = "SECRET"')
+                                        if line.strip().startswith("root-password"):
+                                            response_lines.append('root-password = "SECRET"')
                                         else:
                                             response_lines.append(line)
 

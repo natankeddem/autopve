@@ -65,7 +65,7 @@ class Setting(Tab):
                         else:
                             control = el.FInput(
                                 label=key,
-                                password=True if key == "root_password" else False,
+                                password=True if key == "root-password" else False,
                                 password_toggle_button=False,
                                 on_change=lambda e, key=key: self.set_key(key, e.value),
                             )
@@ -161,11 +161,17 @@ class Global(Setting):
             "fqdn": {"description": "The fully qualified domain name of the host. The domain part will be used as the search domain."},
             "mailto": {"description": "The default email address for the user root."},
             "timezone": {"description": "The timezone in tzdata format. For example, Europe/Vienna or America/New_York."},
-            "root_password": {"description": "The password for the root user.", "type": "str"},
-            "root-password-hashed": {"description": "The pre-hashed password for the root user, which will be written verbatim to /etc/passwd. May be used instead of root_password and can be generated using the mkpasswd tool, for example.", "type": "str"},
-            "root_ssh_keys": {"description": "Optional. SSH public keys to add to the root users authorized_keys file after the installation."},
-            "reboot_on_error": {
+            "root-password": {"description": "The password for the root user.", "type": "str"},
+            "root-password-hashed": {
+                "description": "The pre-hashed password for the root user, which will be written verbatim to /etc/passwd. May be used instead of root-password and can be generated using the mkpasswd tool, for example.",
+                "type": "str",
+            },
+            "root-ssh_keys": {"description": "Optional. SSH public keys to add to the root users authorized_keys file after the installation."},
+            "reboot-on-error": {
                 "description": "If set to true, the installer will reboot automatically when an error is encountered. The default behavior is to wait to give the administrator a chance to investigate why the installation failed."
+            },
+            "reboot-mode": {
+                "description": "Optional. Specifies whether the target machine should be rebooted or powered off after a successful installation. Options are reboot (default) and power-off."
             },
         }
         super().__init__(answer, type="global", keys=keys)
@@ -187,9 +193,9 @@ class Disk(Setting):
     def __init__(self, answer: str) -> None:
         keys = {
             "filesystem": {"description": "One of the following options: ext4, xfs, zfs, or btrfs.", "options": ["ext4", "xfs", "zfs", "btrfs"]},
-            "disk_list": {"description": 'List of disks to use. Useful if you are sure about the disk names. For example: disk_list = ["sda", "sdb"].'},
+            "disk-list": {"description": 'List of disks to use. Useful if you are sure about the disk names. For example: disk_list = ["sda", "sdb"].'},
             "filter": {"description": "Filter against UDEV properties to select the disks for the installation. See filters."},
-            "filter_match": {
+            "filter-match": {
                 "description": 'Can be "any" or "all". Decides if a match of any filter is enough of if all filters need to match for a disk to be selected. Default is "any".',
                 "options": ["any", "all"],
             },
@@ -200,7 +206,7 @@ class Disk(Setting):
             "zfs.ashift": {
                 "description": "Defines the ashift value for the created pool. The ashift needs to be set at least to the sector-size of the underlying disks (2 to the power of ashift is the sector-size), or any disk which might be put in the pool (for example the replacement of a defective disk)."
             },
-            "zfs.arc_max": {
+            "zfs.arc-max": {
                 "description": "Defines the maximum size the ARC can grow to and thus limits the amount of memory ZFS will use. See also the section on how to limit ZFS memory usage for more details."
             },
             "zfs.checksum": {"description": "Defines which checksumming algorithm should be used for rpool."},
@@ -231,16 +237,29 @@ class Disk(Setting):
                 "options": ["raid0", "raid1", "raid10"],
             },
             "btrfs.hdsize": {"description": ""},
+            "btrfs.compress": {
+                "description": "The compression type to use. Possible options are on, off, zlib, lzo and zstd. Defaults to off. See also the btrfs(5) manpage.",
+                "options": ["on", "off", "zlib", "lzo", "zstd"],
+            },
         }
         super().__init__(answer, type="disk-setup", keys=keys)
 
     def key_valid(self, key: str) -> bool:
         if super().key_valid(key) is True:
-            if "filter" in key and "disk_list" in self._elements.keys():
+            if "filter" in key and "disk-list" in self._elements.keys():
                 el.Notification(f"Can not add {key} when disk_list is utilized!", type="negative", timeout=5)
                 return False
-            elif key == "disk_list" and any("filter" in k for k in self._elements.keys()):
+            elif key == "disk-list" and any("filter" in k for k in self._elements.keys()):
                 el.Notification("Can not add disk_list when a filter is utilized!", type="negative", timeout=5)
                 return False
             return True
         return False
+
+
+class PostInstallWebhook(Setting):
+    def __init__(self, answer: str) -> None:
+        keys = {
+            "url": {"description": "The URL the information about the installed system should be sent to as HTTP POST request."},
+            "cert-fingerprint": {"description": "Optional. SHA256 certificate fingerprint if certificate pinning should be used."},
+        }
+        super().__init__(answer, type="post-installation-webhook", keys=keys)
