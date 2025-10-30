@@ -2,10 +2,7 @@ version: "3.8"
 
 services:
   autopve:
-    # image: ghcr.io/natankeddem/autopve:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/natankeddem/autopve:latest
     ports:
       - 8080:8080
     volumes:
