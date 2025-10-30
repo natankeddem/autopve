@@ -184,7 +184,7 @@ class Network(Setting):
             "cidr": {"description": "The IP address in CIDR notation. For example, 192.168.1.10/24."},
             "dns": {"description": "The IP address of the DNS server."},
             "gateway": {"description": "The IP address of the default gateway."},
-            "filter": {"description": "Filter against the UDEV properties to select the network card. See filters."},
+            "filter.ID_NET_NAME_MAC": {"description": "Filter against the ID_NET_NAME_MAC property to select the network card. See filters."},
         }
         super().__init__(answer, type="network", keys=keys)
 
@@ -255,11 +255,34 @@ class Disk(Setting):
             return True
         return False
 
-
-class PostInstallWebhook(Setting):
+class Post(Setting):
     def __init__(self, answer: str) -> None:
         keys = {
-            "url": {"description": "The URL the information about the installed system should be sent to as HTTP POST request."},
-            "cert-fingerprint": {"description": "Optional. SHA256 certificate fingerprint if certificate pinning should be used."},
+            "url": {
+                "description": "The URL of the executable file to download."
+            },
+            "cert-fingerprint": {
+                "description": "SHA256 certificate fingerprint if certificate pinning should be used."
+            }
         }
         super().__init__(answer, type="post-installation-webhook", keys=keys)
+
+class FirstBoot(Setting):
+    def __init__(self, answer: str) -> None:
+        keys = {
+            "source": {
+                "description": "Where to source the executable for running at first boot from.", 
+                "options": ["from-iso", "from-url"]
+            },
+            "ordering": {
+                "description": "Optional. At what stage of the boot to run the hook.", 
+                "options": ["before-network", "network-online", "fully-up"]
+            },
+            "url": {
+                "description": "The URL of the executable file to download."
+            },
+            "cert-fingerprint": {
+                "description": "SHA256 certificate fingerprint if certificate pinning should be used for the download of the executable file."
+            }
+        }
+        super().__init__(answer, type="first-boot", keys=keys)
