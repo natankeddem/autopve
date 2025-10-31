@@ -7,12 +7,9 @@ services:
       - 8080:8080
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - data:/app/data
-      - logs:/app/logs
+      - ~/path/to/data:/app/data
+      - ~/path/to/logs:/app/logs
     environment:
       - PUID=1000
       - PGID=1000
       - VERBOSE_LOGGING=TRUE # Optional
-volumes:
-  data:
-  logs:
