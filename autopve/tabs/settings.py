@@ -255,15 +255,12 @@ class Disk(Setting):
             return True
         return False
 
-class Post(Setting):
+
+class PostInstallWebhook(Setting):
     def __init__(self, answer: str) -> None:
         keys = {
-            "url": {
-                "description": "The URL of the executable file to download."
-            },
-            "cert-fingerprint": {
-                "description": "SHA256 certificate fingerprint if certificate pinning should be used."
-            }
+            "url": {"description": "The URL the information about the installed system should be sent to as HTTP POST request."},
+            "cert-fingerprint": {"description": "Optional. SHA256 certificate fingerprint if certificate pinning should be used."},
         }
         super().__init__(answer, type="post-installation-webhook", keys=keys)
 
