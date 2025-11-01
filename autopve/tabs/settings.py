@@ -264,22 +264,19 @@ class PostInstallWebhook(Setting):
         }
         super().__init__(answer, type="post-installation-webhook", keys=keys)
 
-class FirstBoot(Setting):
+
+class FirstBootHook(Setting):
     def __init__(self, answer: str) -> None:
         keys = {
             "source": {
-                "description": "Where to source the executable for running at first boot from.", 
-                "options": ["from-iso", "from-url"]
+                "description": "Where to source the executable for running at first boot from. It can either be from-iso or from-url.",
+                "options": ["from-iso", "from-url"],
             },
             "ordering": {
-                "description": "Optional. At what stage of the boot to run the hook.", 
-                "options": ["before-network", "network-online", "fully-up"]
+                "description": "Optional. At what stage of the boot to run the hook. It can be one of before-network, network-online or fully-up.",
+                "options": ["before-network", "network-online", "fully-up"],
             },
-            "url": {
-                "description": "The URL of the executable file to download."
-            },
-            "cert-fingerprint": {
-                "description": "SHA256 certificate fingerprint if certificate pinning should be used for the download of the executable file."
-            }
+            "url": {"description": 'Required when source = "from-url". The URL of the executable file to download.'},
+            "cert-fingerprint": {"description": "Optional. SHA256 certificate fingerprint if certificate pinning should be used for the download of the executable file."},
         }
         super().__init__(answer, type="first-boot", keys=keys)
