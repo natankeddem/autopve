@@ -51,9 +51,8 @@ def page() -> None:
         info="#5C8984",
         warning="#F2C037",
     )
-    column = ui.column()
     content = Content()
-    drawer = Drawer(column, content.answer_selected, content.hide)
+    drawer = Drawer(content.answer_selected, content.hide)
     drawer.build()
 
 
