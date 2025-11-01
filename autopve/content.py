@@ -2,7 +2,7 @@ import asyncio
 from nicegui import ui  # type: ignore
 from autopve import elements as el
 from autopve import logo as logo
-from autopve.tabs.settings import Global, Network, Disk, PostInstallWebhook
+from autopve.tabs.settings import Global, Network, Disk, PostInstallWebhook, FirstBootHook
 from autopve.tabs.history import History
 from autopve.tabs.system import MustContain, MustNotContain
 import logging
@@ -33,23 +33,33 @@ class Content:
 
     def _build(self):
         with self._header:
-            with ui.row().classes("w-full h-16 justify-between items-center"):
-                self._tabs = ui.tabs()
-                with self._tabs:
-                    self._tab["global"] = ui.tab(name="Global").classes("text-secondary")
-                    self._tab["network"] = ui.tab(name="Network").classes("text-secondary")
-                    self._tab["disk"] = ui.tab(name="Disk").classes("text-secondary")
-                    self._tab["post_install_webhook"] = ui.tab(name="Post").classes("text-secondary")
-                    self._tab["history"] = ui.tab(name="History").classes("text-secondary")
-                    if self._answer != "Default":
-                        self._tab["must_contain"] = ui.tab(name="Contains").classes("text-secondary")
-                        self._tab["must_not_contain"] = ui.tab(name="Doesn't Contain").classes("text-secondary")
-                with ui.row().classes("items-center"):
-                    self._answer_display = ui.label(self._answer).classes("text-secondary text-h4")
-                    logo.show()
+            with ui.row().classes("w-full items-center justify-between"):
+                self._answer_display = ui.label(self._answer).classes("text-secondary text-h4")
+                logo.show()
         with self._content:
-            self._tab_panels = ui.tab_panels(self._tabs, value="Global", on_change=lambda e: self._tab_changed(e), animated=False)
-            self._tab_panels.tailwind.width("full")
+            with ui.row().classes("w-full flex-nowrap"):
+                with ui.column().classes("min-w-[150px]"):
+                    self._tabs = ui.tabs()
+                    self._tabs.props("vertical dense").classes("w-full")
+                    with self._tabs:
+                        ui.label("SETTINGS").classes("text-secondary text-h6")
+                        ui.separator()
+                        self._tab["global"] = ui.tab(name="Global").classes("text-secondary justify-self-end")
+                        self._tab["network"] = ui.tab(name="Network").classes("text-secondary justify-self-end")
+                        self._tab["disk"] = ui.tab(name="Disk").classes("text-secondary justify-self-end")
+                        self._tab["first_boot"] = ui.tab(name="First Boot").classes("text-secondary justify-self-end")
+                        self._tab["post_install_webhook"] = ui.tab(name="Post Hook").classes("text-secondary justify-self-end")
+                        ui.label("STATUS").classes("text-secondary text-h6")
+                        ui.separator()
+                        self._tab["history"] = ui.tab(name="History").classes("text-secondary justify-self-end")
+                        if self._answer != "Default":
+                            ui.label("FILTERS").classes("text-secondary text-h6")
+                            ui.separator()
+                            self._tab["must_contain"] = ui.tab(name="Contains").classes("text-secondary justify-self-end")
+                            self._tab["must_not_contain"] = ui.tab(name="Doesn't Contain").classes("text-secondary justify-self-end")
+                with ui.column().classes("w-full h-full items-center flex-grow"):
+                    self._tab_panels = ui.tab_panels(self._tabs, value="Global", on_change=lambda e: self._tab_changed(e), animated=False)
+                    self._tab_panels.classes("w-full h-full")
 
     async def _tab_changed(self, e):
         if e.value == "History":
@@ -65,7 +75,8 @@ class Content:
             self._global_content = el.ContentTabPanel(self._tab["global"])
             self._network_content = el.ContentTabPanel(self._tab["network"])
             self._disk_content = el.ContentTabPanel(self._tab["disk"])
-            self_post_install_webhook_content = el.ContentTabPanel(self._tab["post_install_webhook"])
+            self._firstboot_content = el.ContentTabPanel(self._tab["first_boot"])
+            self._post_install_webhook_content = el.ContentTabPanel(self._tab["post_install_webhook"])
             self._history_content = el.ContentTabPanel(self._tab["history"])
             if self._answer != "Default":
                 self._must_contain_content = el.ContentTabPanel(self._tab["must_contain"])
@@ -76,7 +87,9 @@ class Content:
                 Network(answer=self._answer)
             with self._disk_content:
                 Disk(answer=self._answer)
-            with self_post_install_webhook_content:
+            with self._firstboot_content:
+                FirstBootHook(answer=self._answer)
+            with self._post_install_webhook_content:
                 PostInstallWebhook(answer=self._answer)
             with self._history_content:
                 self._history = History(answer=self._answer)

@@ -51,9 +51,8 @@ def page() -> None:
         info="#5C8984",
         warning="#F2C037",
     )
-    column = ui.column()
     content = Content()
-    drawer = Drawer(column, content.answer_selected, content.hide)
+    drawer = Drawer(content.answer_selected, content.hide)
     drawer.build()
 
 
@@ -101,6 +100,10 @@ async def post_answer(request: Request) -> PlainTextResponse:
                 default_data["global"].update(answer_data["global"])
             if "network" in default_data and "network" in answer_data:
                 default_data["network"].update(answer_data["network"])
+            if "first-boot" in default_data and "first-boot" in answer_data:
+                default_data["first-boot"].update(answer_data["first-boot"])
+            if "post-installation-webhook" in default_data and "post-installation-webhook" in answer_data:
+                default_data["post-installation-webhook"].update(answer_data["post-installation-webhook"])
             if "disk-setup" in default_data and "disk-setup" in answer_data:
                 if any("filter" in k for k in answer_data["disk-setup"]) and "disk_list" in default_data["disk-setup"]:
                     del default_data["disk-setup"]["disk_list"]

@@ -9,10 +9,9 @@ logger = logging.getLogger(__name__)
 
 
 class Drawer(object):
-    def __init__(self, main_column, on_click, hide_content) -> None:
+    def __init__(self, on_click, hide_content) -> None:
         self._on_click = on_click
         self._hide_content = hide_content
-        self._main_column = main_column
         self._header_row = None
         self._table = None
         self._name = ""
