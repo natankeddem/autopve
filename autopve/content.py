@@ -38,7 +38,7 @@ class Content:
                 logo.show()
         with self._content:
             with ui.row().classes("w-full flex-nowrap"):
-                with ui.column().classes("min-w-[150px]"):
+                with ui.column().classes("min-w-[250px]"):
                     self._tabs = ui.tabs()
                     self._tabs.props("vertical dense").classes("w-full")
                     with self._tabs:
