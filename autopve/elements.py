@@ -346,7 +346,8 @@ class Notification(ui.notification):
 class ContentTabPanel(ui.tab_panel):
     def __init__(self, name: Tab | str) -> None:
         super().__init__(name)
-        self.classes("w-full h-full items-center overflow-auto")
+        self.style("height: calc(100vh - 100px)")
+        self.classes("w-full items-center overflow-auto")
 
 
 class FSelect(ui.select):
