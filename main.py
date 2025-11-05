@@ -39,6 +39,7 @@ def page() -> None:
     from autopve.drawer import Drawer
     from autopve.content import Content
 
+    ui.add_head_html('<link href="static/xterm.css" rel="stylesheet">')
     app.add_static_files("/static", "static")
     el.load_element_css()
     ui.colors(

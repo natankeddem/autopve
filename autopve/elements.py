@@ -1,4 +1,6 @@
 from typing import Any, Callable, Dict, List, Literal, Optional, Union
+import base64
+import asyncio
 from nicegui import ui, app, Tailwind
 from nicegui.elements.notification import NotificationPosition, NotificationType  # type: ignore
 from nicegui.elements.spinner import SpinnerTypes  # type: ignore
@@ -48,6 +50,33 @@ def load_element_css():
         }}
         .q-drawer--bordered{{
             border-color: {orange} !important;
+        }}
+        ::-webkit-scrollbar {{
+        width: 12px; /* Set the width of the scrollbar */
+        background-color: #333; /* Dark background for the entire scrollbar area */
+        }}
+
+        /* Target the scrollbar track (the background of the scrollbar) */
+        ::-webkit-scrollbar-track {{
+        background-color: #222; /* A slightly darker background for the track */
+        border-radius: 10px; /* Rounded corners for the track */
+        }}
+
+        /* Target the scrollbar thumb (the draggable handle) */
+        ::-webkit-scrollbar-thumb {{
+        background-color: #555; /* A dark gray for the thumb */
+        border-radius: 10px; /* Rounded corners for the thumb */
+        border: 2px solid #444; /* A darker border around the thumb */
+        }}
+
+        /* Style the thumb on hover */
+        ::-webkit-scrollbar-thumb:hover {{
+        background-color: #777; /* Lighter gray on hover */
+        }}
+
+        /* Target the scrollbar corner (where horizontal and vertical scrollbars meet) */
+        ::-webkit-scrollbar-corner {{
+        background-color: #111; /* Very dark background for the corner */
         }}
     </style>
     """
@@ -372,3 +401,40 @@ class JsonEditor(ui.json_editor):
         super().__init__(properties, on_select=on_select, on_change=on_change)
         self.classes("jse-theme-dark")
         self.tailwind.height("[320px]").width("[640px]")
+
+
+class Terminal(ui.element, component="lib/terminal.js", dependencies=["lib/xterm.js"]):
+    def __init__(self, options: Dict[str, Union[str, int]]) -> None:
+        super().__init__()
+        self._props["options"] = options
+        self._ready = False
+        self.on("ready", self.handle_ready, ["state"])
+        self._write_buffer = b""
+
+    async def wait_on_ready(self):
+        while not self.ready:
+            await asyncio.sleep(0.01)
+
+    def call_terminal_method(self, name: str, *args) -> None:
+        self.run_method("call_api_method", name, *args)
+
+    def write(self, data: Union[str, bytes]) -> None:
+        if isinstance(data, str):
+            data = data.encode("utf-8")
+        if self.ready:
+            base64_encoded_hex = base64.b64encode(data).hex()
+            self.run_method("write_base64_encoded_hex", {"base64_encoded_hex": base64_encoded_hex})
+        self._write_buffer = self._write_buffer + data
+
+    async def handle_ready(self, e: GenericEventArguments):
+        state = e.args["state"]
+        if state:
+            self.run_method("reset")
+            await asyncio.sleep(0.25)
+            base64_encoded_hex = base64.b64encode(self._write_buffer).hex()
+            self.run_method("write_base64_encoded_hex", {"base64_encoded_hex": base64_encoded_hex})
+        self._ready = state
+
+    @property
+    def ready(self) -> bool:
+        return self._ready
