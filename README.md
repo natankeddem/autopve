@@ -45,6 +45,79 @@ GUI configurable web server for Proxmox automated installation. More information
 
 The configuration GUI can be accessed at `http://host:8080`. Answers are hosted at `http://host:8080/answer`.
 
+### Automated Post-Installation with Ansible Playbooks
+
+`autopve` can automatically trigger an Ansible playbook upon a successful Proxmox installation. This is achieved by using the `post-installation-webhook` feature available in Proxmox VE.
+
+When the installation is complete, the Proxmox installer sends a POST request containing detailed system information to a specified URL. You can configure this URL to be an `autopve` endpoint that executes a playbook, passing the received system information to it as an extra variable.
+
+#### How to Use
+
+**1. Create and Manage Your Playbook in `autopve`**
+
+A new "Playbooks" section is available in the UI. Here you can create a new playbook, which establishes a dedicated directory at `data/playbooks/<playbook_name>/`. Within the UI, you can then edit the `playbook.yaml` and `inventory.yaml` files for that playbook.
+
+**2. Accessing System Information in Your Playbook**
+
+The system information sent by the Proxmox installer is passed directly to your playbook as a JSON string via the `-e` or `--extra-vars` flag. Ansible automatically parses this into a variable named `system_info`. You can then access any of the data points from the webhook in your tasks.
+
+For example, to access the Proxmox product version, you would use `{{ system_info.product.version }}`.
+
+```yaml
+---
+- name: Playbook to print the proxmox version
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:        
+    - name: Print Version
+      ansible.builtin.debug:
+        msg: "The Proxmox version is: {{ system_info.product.version }}"
+
+    - name: Show all received system info
+      ansible.builtin.debug:
+        var: system_info
+```
+
+**3. Configure the Proxmox Answer File**
+
+In your `answer`, configure the `post-installation-webhook` section to point to the `autopve` endpoint. The URL must be in the format `http://<your-autopve-ip>:8080/playbook/<playbook_name>`.
+```toml
+[post-installation-webhook]
+url = "http://host:8080/playbook/my-playbook"
+# cert-fingerprint = "..." # Optional: if autopve is behind HTTPS
+```
+
+When this installation completes, `autopve` will execute the playbook located at `data/playbooks/my-first-playbook/`. The command will be structured like this:
+```bash
+ansible-playbook data/playbooks/my-playbook/playbook.yaml -i data/playbooks/my-playbook/inventory.yaml -e '{"product": {"fullname": "Proxmox VE", ...}}'
+```
+
+### Hosting First-Boot Scripts & Files
+
+`autopve` now includes a simple file management system that can host scripts, executables, or any other files. This is particularly useful for the `first-boot-hook` feature in Proxmox, which can download and execute a script from a URL after installation.
+
+#### How to Use
+
+**1. Upload Files to `autopve`**
+
+In the UI's side drawer, there is a "FILES" section. You can upload files here, and they will be stored in the `data/files` directory.
+
+**2. Configure the Proxmox Answer File**
+
+In your `answer`, configure the `first-boot` section. Set the `source` to `from-url` and provide the URL where `autopve` is hosting your file. Files are served from the `/files/` endpoint.
+```toml
+[first-boot]
+source = "from-url"
+ordering = "network-online" # Ensure network is up before downloading
+url = "http://host:8080/files/my-first-boot-script.sh"
+# cert-fingerprint = "..." # Optional: if autopve is behind HTTPS
+```
+This configuration will cause the new Proxmox node to download `my-first-boot-script.sh` from `autopve` and execute it on its first boot.
+
+**Note:** As per the Proxmox documentation, scripts intended for the first-boot hook must start with a shebang (e.g., `#!/bin/bash`) and should only use interpreters that are available in a default Proxmox installation.
+
 ### OPNsense Setup
 
 For Unbound you will need to enable TXT records and make an appropriate host override entry.
