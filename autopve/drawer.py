@@ -18,7 +18,7 @@ class Drawer(object):
         self._answername = ""
         self._username = ""
         self._password = ""
-        self._buttons = {}
+        self._buttons_files = {}
         self._selection_mode = None
 
     def build(self):
@@ -69,6 +69,47 @@ class Drawer(object):
                 self._table.visible = False
                 for name in storage.answers.keys():
                     self._add_answer_to_table(name)
+                ui.separator()
+                ui.separator()
+                with ui.column():
+                    ui.label(text="FILES").classes("text-secondary")
+                    with ui.row():
+
+                        async def handle_upload(e: UploadEventArguments):
+                            storage.mk_file(e.name, e.content)
+                            self._add_file_to_table(e.name)
+
+                        async def start_upload(upload: ui.upload):
+                            upload.run_method("pickFiles")
+
+                        upload = ui.upload(on_upload=handle_upload, auto_upload=True)
+                        upload.classes("hidden")
+                        el.IButton(icon="add", on_click=lambda _: start_upload(upload))
+                        self._buttons_files["remove"] = el.IButton(icon="remove", on_click=lambda: self._modify_file("remove"))
+                self._files_table = (
+                    ui.table(
+                        columns=[
+                            {
+                                "name": "name",
+                                "label": "Name",
+                                "field": "name",
+                                "required": True,
+                                "align": "center",
+                                "sortable": True,
+                            }
+                        ],
+                        rows=[],
+                        row_key="name",
+                        pagination={"rowsPerPage": 0, "sortBy": "name"},
+                        on_select=lambda e: self._selected_file(e),
+                    )
+                    .props("dense flat bordered binary-state-sort hide-header hide-selected-banner hide-pagination virtual-scroll")
+                    .style("height: 116px")
+                )
+                self._files_table.tailwind.width("full")
+                self._files_table.visible = False
+                for name in storage.files():
+                    self._add_file_to_table(name)
             chevron = ui.button(icon="chevron_left", color=None, on_click=toggle_drawer).props("padding=0px")
             chevron.classes("absolute")
             chevron.style("top: 16vh").style("right: -12px").style("background-color: #0E1210 !important").style("height: 16vh")
@@ -77,11 +118,14 @@ class Drawer(object):
 
     def _add_answer_to_table(self, name):
         if len(name) > 0:
-            for row in self._table.rows:
+
+    def _add_file_to_table(self, name):
+        if len(name) > 0:
+            for row in self._files_table.rows:
                 if name == row["name"]:
                     return
-            self._table.add_rows({"name": name})
-            self._table.visible = True
+            self._files_table.add_row({"name": name})
+            self._files_table.visible = True
 
     async def _display_answer_dialog(self, name="", copy=False):
         save = None
@@ -172,7 +216,21 @@ class Drawer(object):
                     del storage.answers[answer]
                 self._table.remove_rows(e.selection[0])
 
-    async def _clicked(self, e):
+    async def _selected_file(self, e):
+        self._hide_content()
+        if len(e.selection) == 1:
+            file = e.selection[0]["name"]
+            if self._selection_mode == "content_copy":
+                pass
+            elif file == "Default":
+                self._files_table._props["selected"] = []
+            elif self._selection_mode == "edit":
+                pass
+            elif self._selection_mode == "remove":
+                if file in storage.files():
+                    storage.rm_file(file)
+                self._files_table.remove_row(e.selection[0])
+
         if "name" in e.args[1]:
             answer = e.args[1]["name"]
             if self._on_click is not None:

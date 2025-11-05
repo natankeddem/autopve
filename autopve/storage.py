@@ -41,3 +41,19 @@ def answer(name: str, copy: bool = False) -> dict:
         return answers[name]
     else:
         return json.loads(json.dumps(answers[name]))
+
+def files():
+    return os.listdir("data/files")
+
+
+def mk_file(name: str, data):
+    path = f"data/files/{name}"
+    if not os.path.exists(path):
+        with open(path, "wb") as dest:
+            shutil.copyfileobj(data, dest)
+
+
+def rm_file(name: str):
+    path = f"data/files/{name}"
+    if os.path.exists(path):
+        os.remove(path)

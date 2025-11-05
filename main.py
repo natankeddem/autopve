@@ -18,6 +18,9 @@ if not os.path.exists("data"):
         os.makedirs("data")
 else:
     logger.warning("Found 'data' directory.")
+if not os.path.exists("data/files"):
+    os.makedirs("data/files")
+
 from fastapi import Request
 from fastapi.responses import PlainTextResponse
 from nicegui import app, Client, ui  # type: ignore
@@ -42,6 +45,7 @@ def page() -> None:
     ui.add_head_html('<link href="static/xterm.css" rel="stylesheet">')
     app.add_static_files("/static", "static")
     el.load_element_css()
+    app.add_static_files("/files", "data/files")
     ui.colors(
         primary=el.orange,
         secondary=el.orange,
