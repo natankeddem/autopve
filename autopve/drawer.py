@@ -1,5 +1,6 @@
 from typing import Optional
-from nicegui.events import KeyEventArguments
+import copy
+from nicegui.events import KeyEventArguments, UploadEventArguments
 from nicegui import ui  # type: ignore
 from autopve import elements as el
 from autopve import storage
@@ -13,11 +14,13 @@ class Drawer(object):
         self._on_click = on_click
         self._hide_content = hide_content
         self._header_row = None
-        self._table = None
+        self._answers_table = None
         self._name = ""
         self._answername = ""
         self._username = ""
         self._password = ""
+        self._buttons_answers = {}
+        self._buttons_playbooks = {}
         self._buttons_files = {}
         self._selection_mode = None
 
@@ -36,18 +39,16 @@ class Drawer(object):
 
         with ui.left_drawer(top_corner=True).props("width=226 behavior=desktop bordered").classes("q-pa-none") as drawer:
             with ui.column().classes("h-full w-full q-py-xs q-px-md") as content:
-                self._header_row = el.WRow().classes("justify-between")
-                self._header_row.tailwind().height("12")
-                with self._header_row:
+                with ui.column():
+                    ui.label(text="ANSWERS").classes("text-secondary")
                     with ui.row():
                         el.IButton(icon="add", on_click=self._display_answer_dialog)
-                        self._buttons["remove"] = el.IButton(icon="remove", on_click=lambda: self._modify_answer("remove"))
-                        self._buttons["edit"] = el.IButton(icon="edit", on_click=lambda: self._modify_answer("edit"))
-                        self._buttons["content_copy"] = el.IButton(icon="content_copy", on_click=lambda: self._modify_answer("content_copy"))
-                    ui.label(text="ANSWERS").classes("text-secondary")
-                self._table = (
+                        self._buttons_answers["remove"] = el.IButton(icon="remove", on_click=lambda: self._modify_answer("remove"))
+                        self._buttons_answers["edit"] = el.IButton(icon="edit", on_click=lambda: self._modify_answer("edit"))
+                        self._buttons_answers["content_copy"] = el.IButton(icon="content_copy", on_click=lambda: self._modify_answer("content_copy"))
+                self._answers_table = (
                     ui.table(
-                        [
+                        columns=[
                             {
                                 "name": "name",
                                 "label": "Name",
@@ -57,19 +58,52 @@ class Drawer(object):
                                 "sortable": True,
                             }
                         ],
-                        [],
+                        rows=[],
                         row_key="name",
                         pagination={"rowsPerPage": 0, "sortBy": "name"},
-                        on_select=lambda e: self._selected(e),
+                        on_select=lambda e: self._selected_answer(e),
                     )
-                    .on("rowClick", self._clicked, [[], ["name"], None])
-                    .props("dense flat bordered binary-state-sort hide-header hide-pagination hide-selected-bannerhide-no-data")
+                    .on("rowClick", self._clicked_answer, [[], ["name"], None])
+                    .props("dense flat bordered binary-state-sort hide-header hide-selected-banner hide-pagination virtual-scroll")
+                    .style("height: 116px")
                 )
-                self._table.tailwind.width("full")
-                self._table.visible = False
+                self._answers_table.tailwind.width("full")
+                self._answers_table.visible = False
                 for name in storage.answers.keys():
                     self._add_answer_to_table(name)
                 ui.separator()
+                with ui.column():
+                    ui.label(text="PLAYBOOKS").classes("text-secondary")
+                    with ui.row():
+                        el.IButton(icon="add", on_click=self._display_playbook_dialog)
+                        self._buttons_playbooks["remove"] = el.IButton(icon="remove", on_click=lambda: self._modify_playbook("remove"))
+                        self._buttons_playbooks["edit"] = el.IButton(icon="edit", on_click=lambda: self._modify_playbook("edit"))
+                        self._buttons_playbooks["content_copy"] = el.IButton(icon="content_copy", on_click=lambda: self._modify_playbook("content_copy"))
+                self._playbooks_table = (
+                    ui.table(
+                        columns=[
+                            {
+                                "name": "name",
+                                "label": "Name",
+                                "field": "name",
+                                "required": True,
+                                "align": "center",
+                                "sortable": True,
+                            }
+                        ],
+                        rows=[],
+                        row_key="name",
+                        pagination={"rowsPerPage": 0, "sortBy": "name"},
+                        on_select=lambda e: self._selected_playbook(e),
+                    )
+                    .on("rowClick", self._clicked_playbook, [[], ["name"], None])
+                    .props("dense flat bordered binary-state-sort hide-header hide-selected-banner hide-pagination virtual-scroll")
+                    .style("height: 116px")
+                )
+                self._playbooks_table.tailwind.width("full")
+                self._playbooks_table.visible = False
+                for name in storage.playbooks():
+                    self._add_playbook_to_table(name)
                 ui.separator()
                 with ui.column():
                     ui.label(text="FILES").classes("text-secondary")
@@ -118,6 +152,19 @@ class Drawer(object):
 
     def _add_answer_to_table(self, name):
         if len(name) > 0:
+            for row in self._answers_table.rows:
+                if name == row["name"]:
+                    return
+            self._answers_table.add_row({"name": name})
+            self._answers_table.visible = True
+
+    def _add_playbook_to_table(self, name):
+        if len(name) > 0:
+            for row in self._playbooks_table.rows:
+                if name == row["name"]:
+                    return
+            self._playbooks_table.add_row({"name": name})
+            self._playbooks_table.visible = True
 
     def _add_file_to_table(self, name):
         if len(name) > 0:
@@ -127,7 +174,7 @@ class Drawer(object):
             self._files_table.add_row({"name": name})
             self._files_table.visible = True
 
-    async def _display_answer_dialog(self, name="", copy=False):
+    async def _display_answer_dialog(self, name="", cp=False):
         save = None
 
         with ui.dialog() as answer_dialog, el.Card():
@@ -168,53 +215,159 @@ class Drawer(object):
         if result == "save" and name != answer:
             if name in storage.answers:
                 storage.answers[answer] = storage.answer(name, copy=True)
-                if copy is False:
+                if cp is False:
                     del storage.answers[name]
-                    for row in self._table.rows:
+                    for row in self._answers_table.rows:
                         if name == row["name"]:
-                            self._table.remove_rows(row)
+                            self._answers_table.remove_rows(row)
             else:
                 storage.answer(answer)
             self._add_answer_to_table(answer)
+
+    async def _display_playbook_dialog(self, name="", cp=False):
+        save = None
+
+        with ui.dialog() as playbook_dialog, el.Card():
+            with el.DBody(height="fit", width="[320px]"):
+                with el.WColumn():
+                    all_playbooks = copy.copy(storage.playbooks())
+
+                    def playbook_check(value: str) -> Optional[bool]:
+                        spaceless = value.replace(" ", "")
+                        if len(spaceless) == 0:
+                            return False
+                        for invalid_value in all_playbooks:
+                            if invalid_value == spaceless:
+                                return False
+                        return None
+
+                    def enter_submit(e: KeyEventArguments) -> None:
+                        if e.key == "Enter" and save_ea.no_errors is True:
+                            playbook_dialog.submit("save")
+                        elif e.key == "Escape":
+                            playbook_dialog.close()
+
+                    playbook_input = el.VInput(
+                        label="playbook", value=" ", invalid_characters="""'`"$\\;&<>|(){}""", invalid_values=all_playbooks, check=playbook_check, max_length=20
+                    )
+                save_ea = el.ErrorAggregator(playbook_input)
+                el.DButton("SAVE", on_click=lambda: playbook_dialog.submit("save")).bind_enabled_from(save_ea, "no_errors")
+                ui.keyboard(on_key=enter_submit, ignore=[])
+                playbook_input.value = name
+
+        result = await playbook_dialog
+        playbook = playbook_input.value.strip()
+        if result == "save" and name != playbook:
+            if name in storage.playbooks():
+                storage.cp_playbook(name, playbook)
+                if cp is False:
+                    storage.rm_playbook(name)
+                    for row in self._playbooks_table.rows:
+                        if name == row["name"]:
+                            self._playbooks_table.remove_rows(row)
+            else:
+                storage.mk_playbook(playbook)
+            self._add_playbook_to_table(playbook)
 
     def _modify_answer(self, mode):
         self._hide_content()
         self._selection_mode = mode
         if mode is None:
-            self._table._props["selected"] = []
-            self._table.props("selection=none")
-            for icon, button in self._buttons.items():
+            self._answers_table._props["selected"] = []
+            self._answers_table.props("selection=none")
+            for icon, button in self._buttons_answers.items():
                 button.props(f"icon={icon}")
-        elif self._buttons[mode]._props["icon"] == "close":
+        elif self._buttons_answers[mode]._props["icon"] == "close":
             self._selection_mode = None
-            self._table._props["selected"] = []
-            self._table.props("selection=none")
-            for icon, button in self._buttons.items():
+            self._answers_table._props["selected"] = []
+            self._answers_table.props("selection=none")
+            for icon, button in self._buttons_answers.items():
                 button.props(f"icon={icon}")
         else:
-            self._table.props("selection=single")
-            for icon, button in self._buttons.items():
+            self._answers_table.props("selection=single")
+            for icon, button in self._buttons_answers.items():
                 if mode == icon:
                     button.props("icon=close")
                 else:
                     button.props(f"icon={icon}")
 
-    async def _selected(self, e):
+    def _modify_playbook(self, mode):
+        self._hide_content()
+        self._selection_mode = mode
+        if mode is None:
+            self._playbooks_table._props["selected"] = []
+            self._playbooks_table.props("selection=none")
+            for icon, button in self._buttons_playbooks.items():
+                button.props(f"icon={icon}")
+        elif self._buttons_playbooks[mode]._props["icon"] == "close":
+            self._selection_mode = None
+            self._playbooks_table._props["selected"] = []
+            self._playbooks_table.props("selection=none")
+            for icon, button in self._buttons_playbooks.items():
+                button.props(f"icon={icon}")
+        else:
+            self._playbooks_table.props("selection=single")
+            for icon, button in self._buttons_playbooks.items():
+                if mode == icon:
+                    button.props("icon=close")
+                else:
+                    button.props(f"icon={icon}")
+
+    def _modify_file(self, mode):
+        self._hide_content()
+        self._selection_mode = mode
+        if mode is None:
+            self._files_table._props["selected"] = []
+            self._files_table.props("selection=none")
+            for icon, button in self._buttons_files.items():
+                button.props(f"icon={icon}")
+        elif self._buttons_files[mode]._props["icon"] == "close":
+            self._selection_mode = None
+            self._files_table._props["selected"] = []
+            self._files_table.props("selection=none")
+            for icon, button in self._buttons_files.items():
+                button.props(f"icon={icon}")
+        else:
+            self._files_table.props("selection=single")
+            for icon, button in self._buttons_files.items():
+                if mode == icon:
+                    button.props("icon=close")
+                else:
+                    button.props(f"icon={icon}")
+
+    async def _selected_answer(self, e):
         self._hide_content()
         if len(e.selection) == 1:
             answer = e.selection[0]["name"]
             if self._selection_mode == "content_copy":
-                await self._display_answer_dialog(name=answer, copy=True)
+                await self._display_answer_dialog(name=answer, cp=True)
                 self._modify_answer(None)
             elif answer == "Default":
-                self._table._props["selected"] = []
+                self._answers_table._props["selected"] = []
             elif self._selection_mode == "edit":
                 await self._display_answer_dialog(name=answer)
                 self._modify_answer(None)
             elif self._selection_mode == "remove":
                 if answer in storage.answers:
                     del storage.answers[answer]
-                self._table.remove_rows(e.selection[0])
+                self._answers_table.remove_rows(e.selection[0])
+
+    async def _selected_playbook(self, e):
+        self._hide_content()
+        if len(e.selection) == 1:
+            playbook = e.selection[0]["name"]
+            if self._selection_mode == "content_copy":
+                await self._display_playbook_dialog(name=playbook, cp=True)
+                self._modify_playbook(None)
+            elif playbook == "Default":
+                self._playbooks_table._props["selected"] = []
+            elif self._selection_mode == "edit":
+                await self._display_playbook_dialog(name=playbook)
+                self._modify_playbook(None)
+            elif self._selection_mode == "remove":
+                if playbook in storage.playbooks():
+                    storage.rm_playbook(playbook)
+                self._playbooks_table.remove_row(e.selection[0])
 
     async def _selected_file(self, e):
         self._hide_content()
@@ -231,7 +384,14 @@ class Drawer(object):
                     storage.rm_file(file)
                 self._files_table.remove_row(e.selection[0])
 
+    async def _clicked_answer(self, e):
         if "name" in e.args[1]:
             answer = e.args[1]["name"]
             if self._on_click is not None:
-                await self._on_click(answer)
+                await self._on_click("answer", answer)
+
+    async def _clicked_playbook(self, e):
+        if "name" in e.args[1]:
+            playbook = e.args[1]["name"]
+            if self._on_click is not None:
+                await self._on_click("playbook", playbook)

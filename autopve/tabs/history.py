@@ -4,18 +4,36 @@ from dataclasses import dataclass, field
 import time
 import json
 import re
+from copy import copy, deepcopy
 from nicegui import app, ui  # type: ignore
 from . import Tab
 from autopve import elements as el
+from autopve import cli
 import logging
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass(kw_only=True)
-class Request:
+class AnswerRequest:
     answer: str
     response: str
+    system_info: Dict[str, Any] = field(default_factory=dict)
+    timestamp: float = field(default_factory=time.time)
+
+    @property
+    def name(self) -> str:
+        if "dmi" in self.system_info:
+            if "system" in self.system_info["dmi"]:
+                if "name" in self.system_info["dmi"]["system"]:
+                    return self.system_info["dmi"]["system"]["name"]
+        return ""
+
+
+@dataclass(kw_only=True)
+class PlaybookRequest:
+    playbook: str
+    cli: cli.Cli
     system_info: Dict[str, Any] = field(default_factory=dict)
     timestamp: float = field(default_factory=time.time)
 
@@ -67,7 +85,7 @@ class SelectionConfirm:
         self.submitted.set()
 
 
-class History(Tab):
+class Answer(Tab):
     def _build(self):
         async def display_request(e):
             if e.args["data"]["system_info"] is not None and e.args["data"]["response"] is not None:
@@ -146,7 +164,7 @@ class History(Tab):
                             "maxWidth": 200,
                         },
                     ],
-                    "rowData": self._share.history,
+                    "rowData": self._share.answer_history,
                 },
                 theme="balham-dark",
             )
@@ -173,10 +191,10 @@ class History(Tab):
         self._grid.update()
 
     @classmethod
-    def add_history(cls, request: Request) -> None:
-        if len(cls._share.history) > 1000:
-            cls._share.history.pop(0)
-        cls._share.history.append(
+    def add_history(cls, request: AnswerRequest) -> None:
+        if len(cls._share.answer_history) > 1000:
+            cls._share.answer_history.pop(0)
+        cls._share.answer_history.append(
             {
                 "timestamp": request.timestamp,
                 "name": request.name,
@@ -197,6 +215,148 @@ class History(Tab):
         if request == "confirm":
             rows = await self._grid.get_selected_rows()
             for row in rows:
-                self._share.history.remove(row)
+                self._share.answer_history.remove(row)
+            self._grid.update()
+        self._set_selection()
+
+
+class Playbook(Tab):
+    def _build(self):
+        async def display_request(e):
+            cli_instance = None
+            if e.args["data"]["system_info"] is not None:
+                with ui.dialog() as dialog, el.Card():
+                    with el.DBody(height="[90vh]", width="[90vw]"):
+                        with el.WColumn():
+                            with ui.tabs().classes("w-full") as tabs:
+                                system_info_tab = ui.tab("System Info")
+                                output_tab = ui.tab("Output")
+                            with ui.tab_panels(tabs, value=system_info_tab):
+                                with ui.tab_panel(system_info_tab):
+                                    system_info = e.args["data"]["system_info"]
+                                    properties = {"content": {"json": system_info}, "readOnly": True}
+                                    el.JsonEditor(properties=properties)
+                                with ui.tab_panel(output_tab):
+                                    terminal = el.Terminal(options={"rows": 30, "cols": 80, "convertEol": True})
+                                    for history in self._share.playbook_history:
+                                        if history["timestamp"] == e.args["data"]["timestamp"]:
+                                            cli_instance: cli.Cli = history["cli"]
+                                            cli_instance.register_terminal(terminal, prefix=True)
+                                    with el.WRow() as row:
+                                        ui.spinner(type="dots", size="32px").bind_visibility_from(cli_instance, "is_busy", value=True)
+                                        el.DButton("Kill Playbook", on_click=lambda: cli_instance.terminate()).bind_visibility_from(cli_instance, "is_busy", value=False)
+                                        ui.spinner(type="dots", size="32px").bind_visibility_from(cli_instance, "is_busy", value=True)
+                        with el.WRow() as row:
+                            row.tailwind.height("[40px]")
+                            el.DButton("Exit", on_click=lambda: dialog.submit("exit"))
+                await dialog
+                if cli_instance is not None:
+                    cli_instance.release_terminal(terminal)
+
+        with el.WColumn() as col:
+            col.tailwind.height("full")
+            self._confirm = el.WRow()
+            self._confirm.visible = False
+            with el.WRow().classes("justify-between").bind_visibility_from(self._confirm, "visible", value=False):
+                with ui.row().classes("items-center"):
+                    el.SmButton(text="Remove", on_click=self._remove_history)
+                with ui.row().classes("items-center"):
+                    el.SmButton(text="Refresh", on_click=lambda _: self.update())
+            table_data = deepcopy(self._share.playbook_history)
+            for d in table_data:
+                del d["cli"]
+            self._grid = ui.aggrid(
+                {
+                    "suppressRowClickSelection": True,
+                    "rowSelection": "multiple",
+                    "paginationAutoPageSize": True,
+                    "pagination": True,
+                    "defaultColDef": {
+                        "resizable": True,
+                        "sortable": True,
+                        "suppressMovable": True,
+                        "sortingOrder": ["asc", "desc"],
+                    },
+                    "columnDefs": [
+                        {
+                            "headerName": "Timestamp",
+                            "field": "timestamp",
+                            "filter": "agTextColumnFilter",
+                            "maxWidth": 125,
+                            ":cellRenderer": """(data) => {
+                                var date = new Date(data.value * 1000).toLocaleString(undefined, {dateStyle: 'short', timeStyle: 'short', hour12: false});;
+                                return date;
+                            }""",
+                            "sort": "desc",
+                        },
+                        {
+                            "headerName": "Name",
+                            "field": "name",
+                            "filter": "agTextColumnFilter",
+                            "flex": 1,
+                        },
+                        {
+                            "headerName": "Playbook",
+                            "field": "playbook",
+                            "filter": "agTextColumnFilter",
+                            "maxWidth": 200,
+                        },
+                    ],
+                    "rowData": table_data,
+                },
+                theme="balham-dark",
+            )
+            self._grid.tailwind().width("full").height("5/6")
+            self._grid.on("cellClicked", lambda e: display_request(e))
+
+    def _set_selection(self, mode=None):
+        row_selection = "single"
+        self._grid.options["columnDefs"][0]["headerCheckboxSelection"] = False
+        self._grid.options["columnDefs"][0]["headerCheckboxSelectionFilteredOnly"] = True
+        self._grid.options["columnDefs"][0]["checkboxSelection"] = False
+        if mode is None:
+            pass
+        elif mode == "single":
+            self._grid.options["columnDefs"][0]["checkboxSelection"] = True
+        elif mode == "multiple":
+            row_selection = "multiple"
+            self._grid.options["columnDefs"][0]["headerCheckboxSelection"] = True
+            self._grid.options["columnDefs"][0]["checkboxSelection"] = True
+        self._grid.options["rowSelection"] = row_selection
+        self._grid.update()
+
+    def update(self):
+        table_data = deepcopy(self._share.playbook_history)
+        for d in table_data:
+            del d["cli"]
+        self._grid.options["rowData"] = table_data
+        self._grid.update()
+
+    @classmethod
+    def add_history(cls, request: PlaybookRequest) -> None:
+        if len(cls._share.playbook_history) > 1000:
+            cls._share.playbook_history.pop(0)
+        cls._share.playbook_history.append(
+            {
+                "timestamp": request.timestamp,
+                "name": request.name,
+                "playbook": request.playbook,
+                "cli": request.cli,
+                "system_info": request.system_info,
+            }
+        )
+        cls._share.last_timestamp = request.timestamp
+        matches = re.findall(r"(\"[^\"]+\"\s*:\s*(\"[^\"]+\"|\d+|true|false))", json.dumps(request.system_info))
+        for match in matches:
+            if str(match[0]) not in cls._share.unique_system_information:
+                cls._share.unique_system_information.append(str(match[0]))
+
+    async def _remove_history(self):
+        self._set_selection(mode="multiple")
+        request = await SelectionConfirm(container=self._confirm, label=">REMOVE<")
+        if request == "confirm":
+            rows = await self._grid.get_selected_rows()
+            for row in rows:
+                self._share.playbook_history.remove(row)
             self._grid.update()
         self._set_selection()

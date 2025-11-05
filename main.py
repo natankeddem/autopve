@@ -18,6 +18,10 @@ if not os.path.exists("data"):
         os.makedirs("data")
 else:
     logger.warning("Found 'data' directory.")
+
+if not os.path.exists("data/playbooks"):
+    os.makedirs("data/playbooks")
+
 if not os.path.exists("data/files"):
     os.makedirs("data/files")
 
@@ -57,7 +61,7 @@ def page() -> None:
         warning="#F2C037",
     )
     content = Content()
-    drawer = Drawer(content.answer_selected, content.hide)
+    drawer = Drawer(content.selected, content.hide)
     drawer.build()
 
 
@@ -74,8 +78,8 @@ async def post_answer(request: Request) -> PlainTextResponse:
             if len(line) > 0 and line[0] == '"':
                 line = line.replace('"', "", 2)
             toml_fixed = toml_fixed + line + "\n"
-        r = history.Request(answer=answer, response=toml_fixed, system_info=system_info)
-        history.History.add_history(r)
+        r = history.AnswerRequest(answer=answer, response=toml_fixed, system_info=system_info)
+        history.Answer.add_history(r)
         for client in Client.instances.values():
             if not client.has_socket_connection:
                 continue
@@ -119,6 +123,31 @@ async def post_answer(request: Request) -> PlainTextResponse:
                 default_data["disk-setup"].update(answer_data["disk-setup"])
             return response(answer, system_info, default_data)
     return response("Default", system_info, default_data)
+
+
+@app.post("/playbook/{name}")
+async def post_playbook(request: Request, name: str):
+    import autopve.elements as el
+    from autopve import storage
+    from autopve.tabs import history
+    from autopve import cli
+
+    system_info = await request.json()
+    cli_instance = cli.Cli()
+    playbook_request = history.PlaybookRequest(playbook=name, cli=cli_instance, system_info=system_info)
+    if name in storage.playbooks():
+        system_info = {"system_info": system_info}
+        system_info_str = json.dumps(system_info).replace("'", '"')
+        command = f"ansible-playbook data/playbooks/{name}/playbook.yaml -i data/playbooks/{name}/inventory.yaml -e '{system_info_str}'"
+        print(command)
+        await cli_instance.execute(command, wait=False)
+        history.Playbook.add_history(playbook_request)
+        for client in Client.instances.values():
+            if not client.has_socket_connection:
+                continue
+            with client:
+                el.Notification(f"New playbook request '{name}' executed!", type="positive", timeout=15)
+        return PlainTextResponse("done")
 
 
 if __name__ in {"__main__", "__mp_main__"}:

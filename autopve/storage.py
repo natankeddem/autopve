@@ -1,5 +1,7 @@
 from typing import Any, Dict
 import json
+import os
+import shutil
 from nicegui import app
 import logging
 
@@ -41,6 +43,46 @@ def answer(name: str, copy: bool = False) -> dict:
         return answers[name]
     else:
         return json.loads(json.dumps(answers[name]))
+
+
+def playbooks():
+    return os.listdir("data/playbooks")
+
+
+def get_playbook(name: str, file: str):
+    path = f"data/playbooks/{name}/{file}"
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            return f.read()
+
+
+def set_playbook(name: str, file: str, data: str):
+    path = f"data/playbooks/{name}/{file}"
+    if os.path.exists(path):
+        with open(path, "w") as f:
+            f.write(data)
+
+
+def mk_playbook(name: str):
+    path = f"data/playbooks/{name}"
+    if not os.path.exists(path):
+        os.makedirs(path)
+        open(f"{path}/playbook.yaml", "a").close()
+        open(f"{path}/inventory.yaml", "a").close()
+
+
+def rm_playbook(name: str):
+    path = f"data/playbooks/{name}"
+    if os.path.exists(path):
+        shutil.rmtree(path, ignore_errors=True)
+
+
+def cp_playbook(src_name: str, dest_name: str):
+    src_path = f"data/playbooks/{src_name}"
+    if os.path.exists(src_path):
+        rm_playbook(dest_name)
+        shutil.copytree(src_path, f"data/playbooks/{dest_name}")
+
 
 def files():
     return os.listdir("data/files")

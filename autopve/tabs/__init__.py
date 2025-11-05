@@ -7,9 +7,10 @@ logger = logging.getLogger(__name__)
 
 @dataclass(kw_only=True)
 class Share:
-    history: List[Dict[str, Any]] = field(default_factory=list)
+    answer_history: List[Dict[str, Any]] = field(default_factory=list)
     last_timestamp: float = 0
     unique_system_information: List[str] = field(default_factory=list)
+    playbook_history: List[Dict[str, Any]] = field(default_factory=list)
 
 
 class Tab:

@@ -3,8 +3,9 @@ from nicegui import ui  # type: ignore
 from autopve import elements as el
 from autopve import logo as logo
 from autopve.tabs.settings import Global, Network, Disk, PostInstallWebhook, FirstBootHook
-from autopve.tabs.history import History
+from autopve.tabs.history import Answer, Playbook
 from autopve.tabs.system import MustContain, MustNotContain
+from autopve.tabs.editor import Editor
 import logging
 
 logger = logging.getLogger(__name__)
@@ -28,10 +29,10 @@ class Content:
         self._header = ui.header(bordered=True).classes("bg-dark q-pt-sm q-pb-xs")
         self._header.tailwind.border_color(f"[{el.orange}]").min_width("[920px]")
         self._header.visible = False
-        self._content = el.WColumn()
+        self._content = el.WColumn().classes("pl-[10px]")
         self._content.bind_visibility_from(self._header)
 
-    def _build(self):
+    def _build_answer(self):
         with self._header:
             with ui.row().classes("w-full items-center justify-between"):
                 self._answer_display = ui.label(self._answer).classes("text-secondary text-h4")
@@ -43,25 +44,24 @@ class Content:
                     self._tabs.props("vertical dense").classes("w-full")
                     with self._tabs:
                         ui.label("SETTINGS").classes("text-secondary text-h6")
-                        ui.separator()
                         self._tab["global"] = ui.tab(name="Global").classes("text-secondary justify-self-end")
                         self._tab["network"] = ui.tab(name="Network").classes("text-secondary justify-self-end")
                         self._tab["disk"] = ui.tab(name="Disk").classes("text-secondary justify-self-end")
                         self._tab["post_install_webhook"] = ui.tab(name="Post Install").classes("text-secondary justify-self-end")
                         self._tab["first_boot"] = ui.tab(name="First Boot").classes("text-secondary justify-self-end")
-                        ui.label("STATUS").classes("text-secondary text-h6")
                         ui.separator()
+                        ui.label("STATUS").classes("text-secondary text-h6")
                         self._tab["history"] = ui.tab(name="History").classes("text-secondary justify-self-end")
                         if self._answer != "Default":
-                            ui.label("FILTERS").classes("text-secondary text-h6")
                             ui.separator()
+                            ui.label("FILTERS").classes("text-secondary text-h6")
                             self._tab["must_contain"] = ui.tab(name="Contains").classes("text-secondary justify-self-end")
                             self._tab["must_not_contain"] = ui.tab(name="Doesn't Contain").classes("text-secondary justify-self-end")
                 with ui.column().classes("w-full h-full items-center flex-grow"):
-                    self._tab_panels = ui.tab_panels(self._tabs, value="Global", on_change=lambda e: self._tab_changed(e), animated=False)
+                    self._tab_panels = ui.tab_panels(self._tabs, value="Global", on_change=lambda e: self._tab_changed_answer(e), animated=False)
                     self._tab_panels.classes("w-full h-full")
 
-    async def _tab_changed(self, e):
+    async def _tab_changed_answer(self, e):
         if e.value == "History":
             self._history.update()
         elif e.value == "Must Contain":
@@ -69,7 +69,7 @@ class Content:
         elif e.value == "Must Not Contain":
             self._must_not_contain.update()
 
-    def _build_tab_panels(self):
+    def _build_tab_panels_answer(self):
         self._tab_panels.clear()
         with self._tab_panels:
             self._global_content = el.ContentTabPanel(self._tab["global"])
@@ -92,21 +92,74 @@ class Content:
             with self._post_install_webhook_content:
                 PostInstallWebhook(answer=self._answer)
             with self._history_content:
-                self._history = History(answer=self._answer)
+                self._history = Answer(answer=self._answer)
             if self._answer != "Default":
                 with self._must_contain_content:
                     self._must_contain = MustContain(answer=self._answer)
                 with self._must_not_contain_content:
                     self._must_not_contain = MustNotContain(answer=self._answer)
 
-    async def answer_selected(self, name):
-        self._answer = name
-        self.hide()
-        self._header.clear()
-        self._content.clear()
-        self._build()
-        self._build_tab_panels()
-        self._header.visible = True
+    def _build_playbook(self):
+        with self._header:
+            with ui.row().classes("w-full items-center justify-between"):
+                self._playbook_display = ui.label(self._playbook).classes("text-secondary text-h4")
+                logo.show()
+        with self._content:
+            with ui.row().classes("w-full flex-nowrap"):
+                with ui.column().classes("min-w-[150px]"):
+                    self._tabs = ui.tabs()
+                    self._tabs.props("vertical dense").classes("w-full")
+                    with self._tabs:
+                        ui.label("FILES").classes("text-secondary text-h6")
+                        self._tab["playbook"] = ui.tab(name="Playbook").classes("text-secondary justify-self-end")
+                        self._tab["inventory"] = ui.tab(name="Inventory").classes("text-secondary justify-self-end")
+                        ui.separator()
+                        ui.label("STATUS").classes("text-secondary text-h6")
+                        self._tab["history"] = ui.tab(name="History").classes("text-secondary justify-self-end")
+                with ui.column().classes("w-full h-full items-center flex-grow"):
+                    self._tab_panels = ui.tab_panels(self._tabs, value="Playbook", on_change=lambda e: self._tab_changed_playbook(e), animated=False)
+                    self._tab_panels.classes("w-full h-full")
+
+    async def _tab_changed_playbook(self, e):
+        if e.value == "History":
+            self._history.update()
+
+    def _build_tab_panels_playbook(self):
+        self._tab_panels.clear()
+        with self._tab_panels:
+            self._playbook_content = el.ContentTabPanel(self._tab["playbook"])
+            self._inventory_content = el.ContentTabPanel(self._tab["inventory"])
+            self._history_content = el.ContentTabPanel(self._tab["history"])
+            with self._playbook_content:
+                Editor(playbook=self._playbook, file="playbook.yaml")
+            with self._inventory_content:
+                Editor(playbook=self._playbook, file="inventory.yaml")
+            with self._history_content:
+                self._history = Playbook(answer=self._answer)
+
+    async def selected(self, mode, name):
+        if mode == "answer":
+            self._answer = name
+            self._playbook = None
+            self.hide()
+            self._header.clear()
+            self._content.clear()
+            self._build_answer()
+            self._build_tab_panels_answer()
+            self._header.visible = True
+        elif mode == "playbook":
+            self._playbook = name
+            self._answer = None
+            self.hide()
+            self._header.clear()
+            self._content.clear()
+            self._build_playbook()
+            self._build_tab_panels_playbook()
+            self._header.visible = True
+        elif mode == "files":
+            pass
+        else:
+            return
 
     def hide(self):
         if self._header is not None:
