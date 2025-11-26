@@ -58,17 +58,17 @@ def get_playbook(name: str, file: str):
 
 def set_playbook(name: str, file: str, data: str):
     path = f"data/playbooks/{name}/{file}"
-    if os.path.exists(path):
-        with open(path, "w") as f:
-            f.write(data)
+    with open(path, "w") as f:
+        f.write(data)
 
 
 def mk_playbook(name: str):
     path = f"data/playbooks/{name}"
     if not os.path.exists(path):
         os.makedirs(path)
-        open(f"{path}/playbook.yaml", "a").close()
-        open(f"{path}/inventory.yaml", "a").close()
+        open(f"{path}/playbook.yaml", "x").close()
+        open(f"{path}/inventory.yaml", "x").close()
+        open(f"{path}/requirements.yaml", "x").close()
 
 
 def rm_playbook(name: str):
