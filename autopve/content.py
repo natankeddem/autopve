@@ -1,11 +1,15 @@
 import asyncio
+import os
+import shutil
 from nicegui import ui  # type: ignore
+import yaml
 from autopve import elements as el
 from autopve import logo as logo
 from autopve.tabs.settings import Global, Network, Disk, PostInstallWebhook, FirstBootHook
 from autopve.tabs.history import Answer, Playbook
 from autopve.tabs.system import MustContain, MustNotContain
 from autopve.tabs.editor import Editor
+from autopve import cli
 import logging
 
 logger = logging.getLogger(__name__)
@@ -113,6 +117,7 @@ class Content:
                         ui.label("FILES").classes("text-secondary text-h6")
                         self._tab["playbook"] = ui.tab(name="Playbook").classes("text-secondary justify-self-end")
                         self._tab["inventory"] = ui.tab(name="Inventory").classes("text-secondary justify-self-end")
+                        self._tab["requirements"] = ui.tab(name="Requirements").classes("text-secondary justify-self-end")
                         ui.separator()
                         ui.label("STATUS").classes("text-secondary text-h6")
                         self._tab["history"] = ui.tab(name="History").classes("text-secondary justify-self-end")
@@ -129,11 +134,61 @@ class Content:
         with self._tab_panels:
             self._playbook_content = el.ContentTabPanel(self._tab["playbook"])
             self._inventory_content = el.ContentTabPanel(self._tab["inventory"])
+            self._requirements_content = el.ContentTabPanel(self._tab["requirements"])
             self._history_content = el.ContentTabPanel(self._tab["history"])
             with self._playbook_content:
                 Editor(playbook=self._playbook, file="playbook.yaml")
             with self._inventory_content:
                 Editor(playbook=self._playbook, file="inventory.yaml")
+            with self._requirements_content:
+                editor = Editor(playbook=self._playbook, file="requirements.yaml")
+                with el.WRow():
+                    root_path = f"data/playbooks/{self._playbook}"
+                    c = cli.Cli()
+
+                    async def run_installers():
+                        reqs = yaml.load(editor.codemirror.value, Loader=yaml.SafeLoader)
+                        if not reqs or "roles" not in reqs and "collections" not in reqs:
+                            el.Notification("No roles or collections found in requirements.yaml", type="negative")
+                            return
+                        if "roles" in reqs:
+                            cmd = f"ansible-galaxy role install -r {root_path}/requirements.yaml -p {root_path}/roles"
+                            await c.execute(cmd)
+                        if "collections" in reqs:
+                            cmd = f"ansible-galaxy collection install -r {root_path}/requirements.yaml -p {root_path}/collections"
+                            # await c.execute(cmd, env={"ANSIBLE_COLLECTIONS_PATH": f"{root_path}/collections"})
+                            await c.execute(cmd)
+
+                    async def apply_requirements():
+                        if editor.codemirror.value:
+                            reqs = yaml.load(editor.codemirror.value, Loader=yaml.SafeLoader)
+                        else:
+                            reqs = None
+                        if not reqs or "roles" not in reqs and "collections" not in reqs:
+                            el.Notification("No roles or collections found in requirements.yaml", type="negative")
+                        else:
+                            for dir in ["roles", "collections"]:
+                                path = f"{root_path}/{dir}"
+                                if os.path.exists(path):
+                                    shutil.rmtree(path, ignore_errors=True)
+                                os.makedirs(path)
+
+                            with ui.dialog() as dialog, el.Card():
+                                with el.DBody(height="[90vh]", width="[90vw]"):
+                                    with el.WColumn():
+                                        terminal = el.Terminal(options={"rows": 20, "cols": 80, "convertEol": True})
+                                        c.register_terminal(terminal, prefix=True)
+                                        with el.WRow() as row:
+                                            row.tailwind.height("[40px]")
+                                            ui.spinner(type="dots", size="32px").bind_visibility_from(c, "is_busy", value=True)
+                                            el.DButton("Cancel", on_click=lambda: c.terminate()).bind_visibility_from(c, "is_busy", value=True)
+                                            ui.spinner(type="dots", size="32px").bind_visibility_from(c, "is_busy", value=True)
+                                            el.DButton("Exit", on_click=lambda: dialog.submit("exit")).bind_visibility_from(c, "is_busy", value=False)
+                                    ui.timer(0.1, run_installers, once=True)
+                            await dialog
+                            c.clear_buffers()
+
+                    el.LgButton("Apply", on_click=apply_requirements)
             with self._history_content:
                 self._history = Playbook(answer=self._answer)
 
