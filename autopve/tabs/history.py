@@ -237,14 +237,14 @@ class Playbook(Tab):
                                     properties = {"content": {"json": system_info}, "readOnly": True}
                                     el.JsonEditor(properties=properties)
                                 with ui.tab_panel(output_tab):
-                                    terminal = el.Terminal(options={"rows": 30, "cols": 80, "convertEol": True})
+                                    terminal = el.Terminal(options={"rows": 15, "cols": 80, "convertEol": True})
                                     for history in self._share.playbook_history:
                                         if history["timestamp"] == e.args["data"]["timestamp"]:
                                             cli_instance: cli.Cli = history["cli"]
                                             cli_instance.register_terminal(terminal, prefix=True)
                                     with el.WRow() as row:
                                         ui.spinner(type="dots", size="32px").bind_visibility_from(cli_instance, "is_busy", value=True)
-                                        el.DButton("Kill Playbook", on_click=lambda: cli_instance.terminate()).bind_visibility_from(cli_instance, "is_busy", value=False)
+                                        el.DButton("Kill Playbook", on_click=lambda: cli_instance.terminate()).bind_visibility_from(cli_instance, "is_busy", value=True)
                                         ui.spinner(type="dots", size="32px").bind_visibility_from(cli_instance, "is_busy", value=True)
                         with el.WRow() as row:
                             row.tailwind.height("[40px]")
