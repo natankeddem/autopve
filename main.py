@@ -72,6 +72,11 @@ async def post_answer(request: Request) -> PlainTextResponse:
     from autopve.tabs import history
 
     def response(answer: str, system_info: Dict[str, Any], data: Dict[str, Any]):
+        print(data)
+        for section in ["global", "network", "first-boot", "post-installation-webhook", "disk-setup"]:
+            if section in data and len(data[section]) == 0:
+                del data[section]
+        print(data)
         toml = tomlkit.dumps(data)
         toml_fixed = ""
         for line in toml.splitlines():
