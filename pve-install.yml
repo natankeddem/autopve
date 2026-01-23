@@ -64,6 +64,7 @@
           - git
           - python3-pip
           - python3-venv
+          - openssh-client
     - name: "Install pip packages required by {{ app_name }}..."
       ansible.builtin.pip:
         extra_args: --break-system-packages

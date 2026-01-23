@@ -1,7 +1,9 @@
-FROM python:3.12.2-slim-bookworm
+FROM python:3.12-slim-trixie
 
 RUN echo "**** install runtime dependencies ****"
 RUN apt update
+RUN apt install -y \
+    openssh-client
 
 ADD requirements.txt .
 RUN python -m pip install --no-cache-dir -r requirements.txt
