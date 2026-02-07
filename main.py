@@ -72,11 +72,14 @@ async def post_answer(request: Request) -> PlainTextResponse:
     from autopve.tabs import history
 
     def response(answer: str, system_info: Dict[str, Any], data: Dict[str, Any]):
-        print(data)
-        for section in ["global", "network", "first-boot", "post-installation-webhook", "disk-setup"]:
+        for section in ["global", "network", "first-boot", "network.interface-name-pinning.mapping", "post-installation-webhook", "disk-setup"]:
             if section in data and len(data[section]) == 0:
                 del data[section]
-        print(data)
+        if "network.interface-name-pinning.mapping" in data:
+            nic_pinning_data = data["network.interface-name-pinning.mapping"]
+            del data["network.interface-name-pinning.mapping"]
+            data["network.interface-name-pinning"] = {"enabled": True}
+            data["network.interface-name-pinning.mapping"] = nic_pinning_data
         toml = tomlkit.dumps(data)
         toml_fixed = ""
         for line in toml.splitlines():
@@ -118,6 +121,10 @@ async def post_answer(request: Request) -> PlainTextResponse:
                 default_data["network"].update(answer_data["network"])
             elif "network" not in default_data and "network" in answer_data:
                 default_data["network"] = answer_data["network"]
+            if "network.interface-name-pinning.mapping" in default_data and "network.interface-name-pinning.mapping" in answer_data:
+                default_data["network.interface-name-pinning.mapping"].update(answer_data["network.interface-name-pinning.mapping"])
+            elif "network.interface-name-pinning.mapping" not in default_data and "network.interface-name-pinning.mapping" in answer_data:
+                default_data["network.interface-name-pinning.mapping"] = answer_data["network.interface-name-pinning.mapping"]
             if "first-boot" in default_data and "first-boot" in answer_data:
                 default_data["first-boot"].update(answer_data["first-boot"])
             elif "first-boot" not in default_data and "first-boot" in answer_data:

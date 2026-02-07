@@ -280,3 +280,31 @@ class FirstBootHook(Setting):
             "cert-fingerprint": {"description": "Optional. SHA256 certificate fingerprint if certificate pinning should be used for the download of the executable file."},
         }
         super().__init__(answer, type="first-boot", keys=keys)
+
+
+class NetworkInterfacePinning(Setting):
+    def __init__(self, answer: str) -> None:
+        super().__init__(answer, type="network.interface-name-pinning.mapping")
+
+    def keys_controls(self):
+        with ui.column() as col:
+            col.tailwind.width("[560px]").align_items("center")
+            with ui.card() as card:
+                card.tailwind.width("full")
+                with ui.row() as row:
+                    row.tailwind.width("full").align_items("center").justify_content("between")
+                    with ui.row() as row:
+                        row.tailwind.align_items("center")
+                        self.help = None
+                        key = el.FInput(label="MAC", on_change=lambda e: self.key_changed(e.value))
+                    ui.button(icon="add", on_click=lambda key=key: self.add_key(key.value))
+            ui.separator()
+            self._scroll = ui.scroll_area()
+            self._scroll.tailwind.width("full").height("[480px]")
+        items = storage.answer(self.answer)
+        if self.type is not None and self.type in items:
+            for key, value in items[self.type].items():
+                if isinstance(value, list):
+                    self.add_key(key, "[" + ",".join(str(v) for v in value) + "]")
+                else:
+                    self.add_key(key, str(value))

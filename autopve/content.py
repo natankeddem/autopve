@@ -5,7 +5,7 @@ from nicegui import ui  # type: ignore
 import yaml
 from autopve import elements as el
 from autopve import logo as logo
-from autopve.tabs.settings import Global, Network, Disk, PostInstallWebhook, FirstBootHook
+from autopve.tabs.settings import Global, Network, NetworkInterfacePinning, Disk, PostInstallWebhook, FirstBootHook
 from autopve.tabs.history import Answer, Playbook
 from autopve.tabs.system import MustContain, MustNotContain
 from autopve.tabs.editor import Editor
@@ -50,6 +50,7 @@ class Content:
                         ui.label("SETTINGS").classes("text-secondary text-h6")
                         self._tab["global"] = ui.tab(name="Global").classes("text-secondary justify-self-end")
                         self._tab["network"] = ui.tab(name="Network").classes("text-secondary justify-self-end")
+                        self._tab["network_interface_pinning"] = ui.tab(name="NIC Pinning").classes("text-secondary justify-self-end")
                         self._tab["disk"] = ui.tab(name="Disk").classes("text-secondary justify-self-end")
                         self._tab["post_install_webhook"] = ui.tab(name="Post Install").classes("text-secondary justify-self-end")
                         self._tab["first_boot"] = ui.tab(name="First Boot").classes("text-secondary justify-self-end")
@@ -78,6 +79,7 @@ class Content:
         with self._tab_panels:
             self._global_content = el.ContentTabPanel(self._tab["global"])
             self._network_content = el.ContentTabPanel(self._tab["network"])
+            self._network_interface_pinning_content = el.ContentTabPanel(self._tab["network_interface_pinning"])
             self._disk_content = el.ContentTabPanel(self._tab["disk"])
             self._firstboot_content = el.ContentTabPanel(self._tab["first_boot"])
             self._post_install_webhook_content = el.ContentTabPanel(self._tab["post_install_webhook"])
@@ -89,6 +91,8 @@ class Content:
                 Global(answer=self._answer)
             with self._network_content:
                 Network(answer=self._answer)
+            with self._network_interface_pinning_content:
+                NetworkInterfacePinning(answer=self._answer)
             with self._disk_content:
                 Disk(answer=self._answer)
             with self._firstboot_content:
