@@ -112,12 +112,20 @@ async def post_answer(request: Request) -> PlainTextResponse:
         if match is True:
             if "global" in default_data and "global" in answer_data:
                 default_data["global"].update(answer_data["global"])
+            elif "global" not in default_data and "global" in answer_data:
+                default_data["global"] = answer_data["global"]
             if "network" in default_data and "network" in answer_data:
                 default_data["network"].update(answer_data["network"])
+            elif "network" not in default_data and "network" in answer_data:
+                default_data["network"] = answer_data["network"]
             if "first-boot" in default_data and "first-boot" in answer_data:
                 default_data["first-boot"].update(answer_data["first-boot"])
+            elif "first-boot" not in default_data and "first-boot" in answer_data:
+                default_data["first-boot"] = answer_data["first-boot"]
             if "post-installation-webhook" in default_data and "post-installation-webhook" in answer_data:
                 default_data["post-installation-webhook"].update(answer_data["post-installation-webhook"])
+            elif "post-installation-webhook" not in default_data and "post-installation-webhook" in answer_data:
+                default_data["post-installation-webhook"] = answer_data["post-installation-webhook"]
             if "disk-setup" in default_data and "disk-setup" in answer_data:
                 if any("filter" in k for k in answer_data["disk-setup"]) and "disk_list" in default_data["disk-setup"]:
                     del default_data["disk-setup"]["disk_list"]
@@ -126,6 +134,8 @@ async def post_answer(request: Request) -> PlainTextResponse:
                         if "filter" in key:
                             del default_data["disk-setup"][key]
                 default_data["disk-setup"].update(answer_data["disk-setup"])
+            elif "disk-setup" not in default_data and "disk-setup" in answer_data:
+                default_data["disk-setup"] = answer_data["disk-setup"]
             return response(answer, system_info, default_data)
     return response("Default", system_info, default_data)
 
