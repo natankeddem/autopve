@@ -81,19 +81,14 @@ async def post_answer(request: Request) -> PlainTextResponse:
             data["network.interface-name-pinning"] = {"enabled": True}
             data["network.interface-name-pinning.mapping"] = nic_pinning_data
         toml = tomlkit.dumps(data)
-        toml_fixed = ""
-        for line in toml.splitlines():
-            if len(line) > 0 and line[0] == '"':
-                line = line.replace('"', "", 2)
-            toml_fixed = toml_fixed + line + "\n"
-        r = history.AnswerRequest(answer=answer, response=toml_fixed, system_info=system_info)
+        r = history.AnswerRequest(answer=answer, response=toml, system_info=system_info)
         history.Answer.add_history(r)
         for client in Client.instances.values():
             if not client.has_socket_connection:
                 continue
             with client:
                 el.Notification(f"New answer request from {r.name} served by {r.answer}!", type="positive", timeout=15)
-        return PlainTextResponse(toml_fixed)
+        return PlainTextResponse(toml)
 
     system_info = await request.json()
     system_info_raw = json.dumps(system_info)
