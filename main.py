@@ -75,11 +75,6 @@ async def post_answer(request: Request) -> PlainTextResponse:
         for section in ["global", "network", "first-boot", "network.interface-name-pinning.mapping", "post-installation-webhook", "disk-setup"]:
             if section in data and len(data[section]) == 0:
                 del data[section]
-        if "network.interface-name-pinning.mapping" in data:
-            nic_pinning_data = data["network.interface-name-pinning.mapping"]
-            del data["network.interface-name-pinning.mapping"]
-            data["network.interface-name-pinning"] = {"enabled": True}
-            data["network.interface-name-pinning.mapping"] = nic_pinning_data
         toml = tomlkit.dumps(data)
         r = history.AnswerRequest(answer=answer, response=toml, system_info=system_info)
         history.Answer.add_history(r)
@@ -116,6 +111,10 @@ async def post_answer(request: Request) -> PlainTextResponse:
                 default_data["network"].update(answer_data["network"])
             elif "network" not in default_data and "network" in answer_data:
                 default_data["network"] = answer_data["network"]
+            if "network.interface-name-pinning" in default_data and "network.interface-name-pinning" in answer_data:
+                default_data["network.interface-name-pinning"].update(answer_data["network.interface-name-pinning"])
+            elif "network.interface-name-pinning" not in default_data and "network.interface-name-pinning" in answer_data:
+                default_data["network.interface-name-pinning"] = answer_data["network.interface-name-pinning"]
             if "network.interface-name-pinning.mapping" in default_data and "network.interface-name-pinning.mapping" in answer_data:
                 default_data["network.interface-name-pinning.mapping"].update(answer_data["network.interface-name-pinning.mapping"])
             elif "network.interface-name-pinning.mapping" not in default_data and "network.interface-name-pinning.mapping" in answer_data:

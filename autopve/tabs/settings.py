@@ -287,10 +287,20 @@ class NetworkInterfacePinning(Setting):
         super().__init__(answer, type="network.interface-name-pinning.mapping")
 
     def keys_controls(self):
+        def control_pinning(enabled: bool):
+            if enabled is True:
+                if "network.interface-name-pinning" not in storage.answer(self.answer):
+                    storage.answer(self.answer)["network.interface-name-pinning"] = {}
+                storage.answer(self.answer)["network.interface-name-pinning"]["enabled"] = True
+            else:
+                if "network.interface-name-pinning" in storage.answer(self.answer):
+                    del storage.answer(self.answer)["network.interface-name-pinning"]
+
         with ui.column() as col:
             col.tailwind.width("[560px]").align_items("center")
             with ui.card() as card:
                 card.tailwind.width("full")
+                ui.checkbox(text="Enable", value="network.interface-name-pinning" in storage.answer(self.answer), on_change=lambda e: control_pinning(e.value))
                 with ui.row() as row:
                     row.tailwind.width("full").align_items("center").justify_content("between")
                     with ui.row() as row:
