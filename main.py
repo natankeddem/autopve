@@ -6,6 +6,7 @@ from typing import Any, Dict
 import json
 import tomlkit
 import os
+import tomlkit
 
 os.environ.setdefault("NICEGUI_STORAGE_PATH", "data")
 if not os.path.exists("data"):
@@ -75,15 +76,20 @@ async def post_answer(request: Request) -> PlainTextResponse:
         for section in ["global", "network", "first-boot", "network.interface-name-pinning.mapping", "post-installation-webhook", "disk-setup"]:
             if section in data and len(data[section]) == 0:
                 del data[section]
-        toml = tomlkit.dumps(data)
-        r = history.AnswerRequest(answer=answer, response=toml, system_info=system_info)
+        tomls = tomlkit.dumps(data)
+        toml_fixed = ""
+        for line in tomls.splitlines():
+            if len(line) > 0 and line[0] == '"' and line.split("=")[0].count(".") > 0:
+                line = line.replace('"', "", 2)
+            toml_fixed = toml_fixed + line + "\n"
+        r = history.AnswerRequest(answer=answer, response=toml_fixed, system_info=system_info)
         history.Answer.add_history(r)
         for client in Client.instances.values():
             if not client.has_socket_connection:
                 continue
             with client:
                 el.Notification(f"New answer request from {r.name} served by {r.answer}!", type="positive", timeout=15)
-        return PlainTextResponse(toml)
+        return PlainTextResponse(toml_fixed)
 
     system_info = await request.json()
     system_info_raw = json.dumps(system_info)
