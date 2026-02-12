@@ -79,7 +79,7 @@ async def post_answer(request: Request) -> PlainTextResponse:
         tomls = tomlkit.dumps(data)
         toml_fixed = ""
         for line in tomls.splitlines():
-            if len(line) > 0 and line[0] == '"' and line.split("=")[0].count(".") > 0:
+            if len(line) > 0 and ((line[0] == '"' and line.split("=")[0].count(".") > 0) or (line[:2] == '["')):
                 line = line.replace('"', "", 2)
             toml_fixed = toml_fixed + line + "\n"
         r = history.AnswerRequest(answer=answer, response=toml_fixed, system_info=system_info)
