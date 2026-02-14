@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 from nicegui import ui
 from . import Tab
 from autopve import elements as el
@@ -80,7 +80,26 @@ class Setting(Tab):
                         if key in self.keys:
                             with ui.button(icon="help"):
                                 ui.tooltip(self.keys[key]["description"])
-                    ui.button(icon="remove", on_click=lambda _, key=key: self.remove_key(key))
+
+                        async def open_edit_dialog(control: Union[el.FInput, el.FSelect]):
+                            with ui.dialog() as dialog, el.Card():
+                                with el.DBody(height="[90vh]", width="[90vw]"):
+                                    with el.WColumn() as col:
+                                        col.classes("w-full h-full")
+                                        ui.label(control.label).classes("text-secondary text-h4")
+                                        editor = ui.codemirror(control.value, language="TOML", theme="vscodeDark", on_change=lambda e: self.set_key(control.label, e.value))
+                                        editor.classes("w-full h-full")
+                                    with el.WRow() as row:
+                                        row.tailwind.height("[40px]")
+                                        el.DButton("Exit", on_click=lambda: dialog.submit("exit"))
+                            await dialog
+                            if isinstance(control, el.FSelect):
+                                if editor.value not in control.options:
+                                    control.options.append(editor.value)
+                            control.value = editor.value
+
+                        ui.button(icon="edit", on_click=lambda _, control=control: open_edit_dialog(control)).tooltip("Open Editor")
+                    ui.button(icon="remove", on_click=lambda _, key=key: self.remove_key(key)).tooltip("Remove")
 
     def key_valid(self, key: str) -> bool:
         if key is not None and key != "" and key not in self._elements.keys():
