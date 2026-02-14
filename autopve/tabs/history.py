@@ -357,6 +357,9 @@ class Playbook(Tab):
         if request == "confirm":
             rows = await self._grid.get_selected_rows()
             for row in rows:
-                self._share.playbook_history.remove(row)
-            self._grid.update()
+                for history in self._share.playbook_history:
+                    if history["timestamp"] == row["timestamp"]:
+                        self._share.playbook_history.remove(history)
+                        break
+            self.update()
         self._set_selection()
