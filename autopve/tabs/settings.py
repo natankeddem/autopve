@@ -87,7 +87,7 @@ class Setting(Tab):
                                     with el.WColumn() as col:
                                         col.classes("w-full h-full")
                                         ui.label(control.label).classes("text-secondary text-h4")
-                                        editor = ui.codemirror(control.value, language="TOML", theme="vscodeDark", on_change=lambda e: self.set_key(control.label, e.value))
+                                        editor = ui.codemirror(control.value, language="JSON", theme="vscodeDark", on_change=lambda e: self.set_key(control.label, e.value))
                                         editor.classes("w-full h-full")
                                     with el.WRow() as row:
                                         row.tailwind.height("[40px]")
