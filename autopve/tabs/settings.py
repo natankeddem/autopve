@@ -32,7 +32,7 @@ class Setting(Tab):
                         key.bind_value_from(key_select)
                         with ui.button(icon="help"):
                             self.help = ui.tooltip("NA")
-                    ui.button(icon="add", on_click=lambda key=key: self.add_key(key.value))
+                    ui.button(icon="add", on_click=lambda key=key: self.add_key(key.value)).tooltip("Add Key")
             ui.separator()
             self._scroll = ui.scroll_area()
             self._scroll.tailwind.width("full").height("[480px]")
@@ -307,7 +307,7 @@ class NetworkInterfacePinning(Setting):
                         row.tailwind.align_items("center")
                         self.help = None
                         key = el.FInput(label="MAC", on_change=lambda e: self.key_changed(e.value))
-                    ui.button(icon="add", on_click=lambda key=key: self.add_key(key.value))
+                    ui.button(icon="add", on_click=lambda key=key: self.add_key(key.value)).tooltip("Add MAC")
             ui.separator()
             self._scroll = ui.scroll_area()
             self._scroll.tailwind.width("full").height("[480px]")
