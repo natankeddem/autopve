@@ -119,7 +119,7 @@ This configuration will cause the new Proxmox node to download `my-first-boot-sc
 **Note:** As per the Proxmox documentation, scripts intended for the first-boot hook must start with a shebang (e.g., `#!/bin/bash`) and should only use interpreters that are available in a default Proxmox installation.
 
 ### Ansible Playbook Example
-```
+```YAML
 ---
 # Make sure you added AutoPVE host to Global > root-ssh-keys
 # PLAY 1: Parse System Info & Wait for Reboot
