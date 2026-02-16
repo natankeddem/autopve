@@ -152,7 +152,7 @@ async def post_playbook(request: Request, name: str):
     import autopve.elements as el
     from autopve import storage
     from autopve.tabs import history
-    from autopve import cli
+    from autopve.interfaces import cli
 
     system_info = await request.json()
     cli_instance = cli.Cli()

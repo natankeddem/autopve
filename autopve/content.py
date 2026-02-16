@@ -9,7 +9,7 @@ from autopve.tabs.settings import Global, Network, NetworkInterfacePinning, Disk
 from autopve.tabs.history import Answer, Playbook
 from autopve.tabs.system import MustContain, MustNotContain
 from autopve.tabs.editor import Editor
-from autopve import cli
+from autopve.interfaces import cli
 import logging
 
 logger = logging.getLogger(__name__)

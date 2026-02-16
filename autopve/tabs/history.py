@@ -8,7 +8,7 @@ from copy import copy, deepcopy
 from nicegui import app, ui  # type: ignore
 from . import Tab
 from autopve import elements as el
-from autopve import cli
+from autopve.interfaces import cli
 import logging
 
 logger = logging.getLogger(__name__)
