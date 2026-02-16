@@ -121,7 +121,7 @@ This configuration will cause the new Proxmox node to download `my-first-boot-sc
 ### Ansible Playbook Example
 ```YAML
 ---
-# Make sure you added AutoPVE host to Global > root-ssh-keys
+# Make sure you added AutoPVE host to global > root-ssh-keys
 # PLAY 1: Parse System Info & Wait for Reboot
 - name: Prepare and Wait for Target
   hosts: localhost
