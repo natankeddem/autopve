@@ -181,32 +181,60 @@ This configuration will cause the new Proxmox node to download `my-first-boot-sc
   gather_facts: yes
   
   tasks:
-    - name: Verify Connection and Context
-      ansible.builtin.debug:
-        msg: "Configuring host {{ inventory_hostname }} (ID: {{ system_info['machine-id'] }})"
+    # -------------------------------------------------------------
+    # 1. Detect Ceph Codename (Read-Only)
+    #    Scans /etc/apt/ for "enterprise.proxmox.com/debian/ceph-..."
+    #    and extracts the component name (e.g., "ceph-squid").
+    # -------------------------------------------------------------
+    - name: Detect Ceph Version from Enterprise Repo
+      ansible.builtin.shell: |
+        grep -r "enterprise.proxmox.com/debian/ceph" /etc/apt/ | \
+        sed -n 's/.*debian\/\(ceph-[a-z0-9]*\).*/\1/p' | \
+        head -n 1
+      register: ceph_version_check
+      changed_when: false
+      failed_when: false
 
+    - name: Display Detected Ceph Version
+      ansible.builtin.debug:
+        msg: "Detected Ceph version: {{ ceph_version_check.stdout | default('Not Found', true) }}"
+
+    # -------------------------------------------------------------
+    # 2. Add PVE No-Subscription Repo
+    # -------------------------------------------------------------
     - name: Add PVE No-Subscription Repository
       ansible.builtin.apt_repository:
-        repo: "deb http://download.proxmox.com/debian/pve trixie pve-no-subscription"
+        repo: "deb http://download.proxmox.com/debian/pve {{ ansible_distribution_release }} pve-no-subscription"
         state: present
         filename: pve-no-subscription
         update_cache: no
 
+    # -------------------------------------------------------------
+    # 3. Add Ceph No-Subscription Repo (Dynamically detected)
+    # -------------------------------------------------------------
     - name: Add Ceph No-Subscription Repository
       ansible.builtin.apt_repository:
-        repo: "deb http://download.proxmox.com/debian/ceph-squid trixie no-subscription"
+        repo: "deb http://download.proxmox.com/debian/{{ ceph_version_check.stdout }} {{ ansible_distribution_release }} no-subscription"
         state: present
         filename: ceph-no-subscription
         update_cache: no
+      # Only run if we successfully detected a version string
+      when: ceph_version_check.stdout | length > 0
 
+    # -------------------------------------------------------------
+    # 4. Disable Enterprise Repos (Nuclear Option)
+    #    Now that we have read the data we needed, we comment out
+    #    the enterprise lines to stop the 401 errors.
+    # -------------------------------------------------------------
     - name: Disable Enterprise Repos (Search & Comment)
-      ansible.builtin.shell: |
-        # Find files containing enterprise.proxmox.com and comment those lines out
-        grep -rl "enterprise.proxmox.com" /etc/apt/sources.list.d/ | xargs sed -i 's/^\([^#]\)/# \1/g'
+      ansible.builtin.shell: grep -rl "enterprise.proxmox.com" /etc/apt/sources.list.d/ | xargs sed -i 's/^\([^#]\)/# \1/g'
       register: disable_enterprise
       failed_when: disable_enterprise.rc != 0 and disable_enterprise.rc != 123
       changed_when: disable_enterprise.rc == 0
-        
+
+    # -------------------------------------------------------------
+    # 5. Update System
+    # -------------------------------------------------------------
     - name: Update System
       ansible.builtin.apt:
         update_cache: yes
