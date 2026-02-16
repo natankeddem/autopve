@@ -3,6 +3,7 @@ from nicegui import ui
 from . import Tab
 from autopve import elements as el
 from autopve import storage
+from autopve.interfaces import ssh
 import logging
 
 logger = logging.getLogger(__name__)
@@ -81,3 +82,14 @@ class MustContain(System):
 class MustNotContain(System):
     def __init__(self, answer: str) -> None:
         super().__init__(answer, type="must_not_contain", note="The system information must not contain any of these strings.")
+
+
+class SSHKey:
+    async def build(self):
+        with ui.column() as col:
+            col.tailwind.width("[560px]").align_items("center").height("full")
+            ui.label("SSH Public Key").classes("text-secondary text-h4")
+            with ui.scroll_area() as s:
+                s.classes("w-full h-full")
+                public_key = await ssh.get_public_key("data")
+                ui.label(public_key).classes("text-secondary break-all")

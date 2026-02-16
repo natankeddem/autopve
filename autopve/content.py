@@ -7,7 +7,7 @@ from autopve import elements as el
 from autopve import logo as logo
 from autopve.tabs.settings import Global, Network, NetworkInterfacePinning, Disk, PostInstallWebhook, FirstBootHook
 from autopve.tabs.history import Answer, Playbook
-from autopve.tabs.system import MustContain, MustNotContain
+from autopve.tabs.system import MustContain, MustNotContain, SSHKey
 from autopve.tabs.editor import Editor
 from autopve.interfaces import cli
 import logging
@@ -57,6 +57,7 @@ class Content:
                         ui.separator()
                         ui.label("STATUS").classes("text-secondary text-h6")
                         self._tab["history"] = ui.tab(name="History").classes("text-secondary justify-self-end")
+                        self._tab["ssh_key"] = ui.tab(name="SSH Key").classes("text-secondary justify-self-end")
                         if self._answer != "Default":
                             ui.separator()
                             ui.label("FILTERS").classes("text-secondary text-h6")
@@ -74,7 +75,7 @@ class Content:
         elif e.value == "Must Not Contain":
             self._must_not_contain.update()
 
-    def _build_tab_panels_answer(self):
+    async def _build_tab_panels_answer(self):
         self._tab_panels.clear()
         with self._tab_panels:
             self._global_content = el.ContentTabPanel(self._tab["global"])
@@ -84,6 +85,7 @@ class Content:
             self._firstboot_content = el.ContentTabPanel(self._tab["first_boot"])
             self._post_install_webhook_content = el.ContentTabPanel(self._tab["post_install_webhook"])
             self._history_content = el.ContentTabPanel(self._tab["history"])
+            self._ssh_key_content = el.ContentTabPanel(self._tab["ssh_key"])
             if self._answer != "Default":
                 self._must_contain_content = el.ContentTabPanel(self._tab["must_contain"])
                 self._must_not_contain_content = el.ContentTabPanel(self._tab["must_not_contain"])
@@ -101,6 +103,9 @@ class Content:
                 PostInstallWebhook(answer=self._answer)
             with self._history_content:
                 self._history = Answer(answer=self._answer)
+            with self._ssh_key_content:
+                ssh_key_instance = SSHKey()
+                await ssh_key_instance.build()
             if self._answer != "Default":
                 with self._must_contain_content:
                     self._must_contain = MustContain(answer=self._answer)
@@ -204,7 +209,7 @@ class Content:
             self._header.clear()
             self._content.clear()
             self._build_answer()
-            self._build_tab_panels_answer()
+            await self._build_tab_panels_answer()
             self._header.visible = True
         elif mode == "playbook":
             self._playbook = name
