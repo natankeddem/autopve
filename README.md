@@ -118,6 +118,101 @@ This configuration will cause the new Proxmox node to download `my-first-boot-sc
 
 **Note:** As per the Proxmox documentation, scripts intended for the first-boot hook must start with a shebang (e.g., `#!/bin/bash`) and should only use interpreters that are available in a default Proxmox installation.
 
+### Ansible Playbook Example
+```
+---
+# Make sure you added AutoPVE host to Global > root-ssh-keys
+# PLAY 1: Parse System Info & Wait for Reboot
+- name: Prepare and Wait for Target
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    # -------------------------------------------------------------
+    # 1. Extract the IP from system_info
+    # -------------------------------------------------------------
+    - name: Parse Management IP from system_info
+      set_fact:
+        target_ip: >-
+          {{ 
+            (system_info['network-interfaces'] 
+            | selectattr('is-management', 'defined') 
+            | selectattr('is-management', 'equalto', true) 
+            | map(attribute='address') 
+            | first).split('/')[0] 
+          }}
+
+    # Optional: Log what we found based on the webhook data
+    - name: Display System Details
+      ansible.builtin.debug:
+        msg: 
+          - "Targeting IP: {{ target_ip }}"
+          - "Proxmox Version: {{ system_info.product.version }}"
+          - "Kernel: {{ system_info['kernel-version'].release }}"
+          - "Boot Mode: {{ system_info['boot-info'].mode }}"
+
+    # -------------------------------------------------------------
+    # 2. Add the dynamic host to the inventory
+    # -------------------------------------------------------------
+    - name: Add host to in-memory inventory
+      add_host:
+        name: "{{ target_ip }}"
+        groups: new_proxmox_install
+        ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+        # Persist system_info to the host so it's available in Play 2
+        system_info: "{{ system_info }}"
+
+    # -------------------------------------------------------------
+    # 3. Wait for the physical reboot
+    # -------------------------------------------------------------
+    - name: Wait for SSH on {{ target_ip }}
+      ansible.builtin.wait_for:
+        host: "{{ target_ip }}"
+        port: 22
+        state: started
+        timeout: 60 # Wait up to 20 mins
+        delay: 10     # Critical: Wait for installer to shut down first
+      delegate_to: localhost
+
+# PLAY 2: Configure the New System
+- name: Configure Proxmox
+  hosts: new_proxmox_install
+  user: root
+  gather_facts: yes
+  
+  tasks:
+    - name: Verify Connection and Context
+      ansible.builtin.debug:
+        msg: "Configuring host {{ inventory_hostname }} (ID: {{ system_info['machine-id'] }})"
+
+    - name: Add PVE No-Subscription Repository
+      ansible.builtin.apt_repository:
+        repo: "deb http://download.proxmox.com/debian/pve trixie pve-no-subscription"
+        state: present
+        filename: pve-no-subscription
+        update_cache: no
+
+    - name: Add Ceph No-Subscription Repository
+      ansible.builtin.apt_repository:
+        repo: "deb http://download.proxmox.com/debian/ceph-squid trixie no-subscription"
+        state: present
+        filename: ceph-no-subscription
+        update_cache: no
+
+    - name: Disable Enterprise Repos (Search & Comment)
+      ansible.builtin.shell: |
+        # Find files containing enterprise.proxmox.com and comment those lines out
+        grep -rl "enterprise.proxmox.com" /etc/apt/sources.list.d/ | xargs sed -i 's/^\([^#]\)/# \1/g'
+      register: disable_enterprise
+      failed_when: disable_enterprise.rc != 0 and disable_enterprise.rc != 123
+      changed_when: disable_enterprise.rc == 0
+        
+    - name: Update System
+      ansible.builtin.apt:
+        update_cache: yes
+        upgrade: dist
+```
+
 ### OPNsense Setup
 
 For Unbound you will need to enable TXT records and make an appropriate host override entry.
