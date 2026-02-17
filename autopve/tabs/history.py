@@ -90,7 +90,7 @@ class Answer(Tab):
         async def display_request(e):
             if e.args["data"]["system_info"] is not None and e.args["data"]["response"] is not None:
                 with ui.dialog() as dialog, el.Card():
-                    with el.DBody(height="fit", width="fit"):
+                    with el.DBody(height="[90vh]", width="[90vw]"):
                         with el.WColumn():
                             with ui.tabs().classes("w-full") as tabs:
                                 system_info_tab = ui.tab("System Info")
@@ -99,7 +99,7 @@ class Answer(Tab):
                                 with ui.tab_panel(system_info_tab):
                                     system_info = e.args["data"]["system_info"]
                                     properties = {"content": {"json": system_info}, "readOnly": True}
-                                    el.JsonEditor(properties=properties)
+                                    el.JsonEditor(properties=properties).classes("w-[70vw] h-[70vh]")
                                 with ui.tab_panel(response_tab):
                                     response = e.args["data"]["response"]
                                     lines = response.splitlines()
@@ -111,7 +111,7 @@ class Answer(Tab):
                                             response_lines.append(line)
 
                                     response = "\n".join(response_lines)
-                                    ui.code(response).tailwind.height("[320px]").width("[640px]")
+                                    ui.code(response).classes("w-[70vw] h-[70vh]")
 
                         with el.WRow() as row:
                             row.tailwind.height("[40px]")
@@ -126,7 +126,7 @@ class Answer(Tab):
                 with ui.row().classes("items-center"):
                     el.SmButton(text="Remove", on_click=self._remove_history)
                 with ui.row().classes("items-center"):
-                    el.SmButton(text="Refresh", on_click=lambda _: self._grid.update())
+                    el.SmButton(text="Refresh", on_click=lambda _: self.update())
             self._grid = ui.aggrid(
                 {
                     "suppressRowClickSelection": True,
@@ -170,6 +170,7 @@ class Answer(Tab):
             )
             self._grid.tailwind().width("full").height("5/6")
             self._grid.on("cellClicked", lambda e: display_request(e))
+            ui.timer(3, self.update)
 
     def _set_selection(self, mode=None):
         row_selection = "single"
@@ -235,9 +236,9 @@ class Playbook(Tab):
                                 with ui.tab_panel(system_info_tab):
                                     system_info = e.args["data"]["system_info"]
                                     properties = {"content": {"json": system_info}, "readOnly": True}
-                                    el.JsonEditor(properties=properties)
+                                    el.JsonEditor(properties=properties).classes("w-[70vw] h-[70vh]")
                                 with ui.tab_panel(output_tab):
-                                    terminal = el.Terminal(options={"rows": 15, "cols": 80, "convertEol": True})
+                                    terminal = el.Terminal(options={"rows": 30, "cols": 80, "convertEol": True})
                                     for history in self._share.playbook_history:
                                         if history["timestamp"] == e.args["data"]["timestamp"]:
                                             cli_instance: cli.Cli = history["cli"]
@@ -308,6 +309,7 @@ class Playbook(Tab):
             )
             self._grid.tailwind().width("full").height("5/6")
             self._grid.on("cellClicked", lambda e: display_request(e))
+            ui.timer(3, self.update)
 
     def _set_selection(self, mode=None):
         row_selection = "single"
