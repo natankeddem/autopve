@@ -158,7 +158,6 @@ This configuration will cause the new Proxmox node to download `my-first-boot-sc
       add_host:
         name: "{{ target_ip }}"
         groups: new_proxmox_install
-        ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
         # Persist system_info to the host so it's available in Play 2
         system_info: "{{ system_info }}"
 
