@@ -13,6 +13,27 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+histories: List[Tab] = []
+
+
+def register_history(tab: Tab) -> None:
+    if tab not in histories:
+        histories.append(tab)
+        logger.debug(f"Registered history tab: {tab}. Total history tabs: {len(histories)}")
+
+
+def update_grids():
+    stale_histories = []
+    for history in histories:
+        try:
+            history.update()
+        except Exception as e:
+            logger.debug(f"Error updating history tab {history}: {e}")
+            stale_histories.append(history)
+    for history in stale_histories:
+        histories.remove(history)
+        logger.debug(f"Removed history tab: {history}. Total history tabs: {len(histories)}")
+
 
 @dataclass(kw_only=True)
 class AnswerRequest:
@@ -127,7 +148,7 @@ class Answer(Tab):
                     el.SmButton(text="Remove", on_click=self._remove_history)
                 with ui.row().classes("items-center"):
                     el.SmButton(text="Refresh", on_click=lambda _: self.update())
-            self._grid = ui.aggrid(
+            self.grid = ui.aggrid(
                 {
                     "suppressRowClickSelection": True,
                     "rowSelection": "multiple",
@@ -168,28 +189,31 @@ class Answer(Tab):
                 },
                 theme="balham-dark",
             )
-            self._grid.tailwind().width("full").height("5/6")
-            self._grid.on("cellClicked", lambda e: display_request(e))
-            ui.timer(3, self.update)
+            self.grid.tailwind().width("full").height("5/6")
+            self.grid.on("cellClicked", lambda e: display_request(e))
+            register_history(self)
 
     def _set_selection(self, mode=None):
         row_selection = "single"
-        self._grid.options["columnDefs"][0]["headerCheckboxSelection"] = False
-        self._grid.options["columnDefs"][0]["headerCheckboxSelectionFilteredOnly"] = True
-        self._grid.options["columnDefs"][0]["checkboxSelection"] = False
+        self.grid.options["columnDefs"][0]["headerCheckboxSelection"] = False
+        self.grid.options["columnDefs"][0]["headerCheckboxSelectionFilteredOnly"] = True
+        self.grid.options["columnDefs"][0]["checkboxSelection"] = False
         if mode is None:
             pass
         elif mode == "single":
-            self._grid.options["columnDefs"][0]["checkboxSelection"] = True
+            self.grid.options["columnDefs"][0]["checkboxSelection"] = True
         elif mode == "multiple":
             row_selection = "multiple"
-            self._grid.options["columnDefs"][0]["headerCheckboxSelection"] = True
-            self._grid.options["columnDefs"][0]["checkboxSelection"] = True
-        self._grid.options["rowSelection"] = row_selection
-        self._grid.update()
+            self.grid.options["columnDefs"][0]["headerCheckboxSelection"] = True
+            self.grid.options["columnDefs"][0]["checkboxSelection"] = True
+        self.grid.options["rowSelection"] = row_selection
+        self.grid.update()
 
     def update(self):
-        self._grid.update()
+        if self.grid.is_deleted is False:
+            self.grid.update()
+        else:
+            raise Exception("Grid is not available for update")
 
     @classmethod
     def add_history(cls, request: AnswerRequest) -> None:
@@ -214,10 +238,10 @@ class Answer(Tab):
         self._set_selection(mode="multiple")
         request = await SelectionConfirm(container=self._confirm, label=">REMOVE<")
         if request == "confirm":
-            rows = await self._grid.get_selected_rows()
+            rows = await self.grid.get_selected_rows()
             for row in rows:
                 self._share.answer_history.remove(row)
-            self._grid.update()
+            self.grid.update()
         self._set_selection()
 
 
@@ -263,10 +287,7 @@ class Playbook(Tab):
                     el.SmButton(text="Remove", on_click=self._remove_history)
                 with ui.row().classes("items-center"):
                     el.SmButton(text="Refresh", on_click=lambda _: self.update())
-            table_data = deepcopy(self._share.playbook_history)
-            for d in table_data:
-                del d["cli"]
-            self._grid = ui.aggrid(
+            self.grid = ui.aggrid(
                 {
                     "suppressRowClickSelection": True,
                     "rowSelection": "multiple",
@@ -303,36 +324,43 @@ class Playbook(Tab):
                             "maxWidth": 200,
                         },
                     ],
-                    "rowData": table_data,
+                    "rowData": [],
                 },
                 theme="balham-dark",
             )
-            self._grid.tailwind().width("full").height("5/6")
-            self._grid.on("cellClicked", lambda e: display_request(e))
-            ui.timer(3, self.update)
+            self.grid.tailwind().width("full").height("5/6")
+            self.grid.on("cellClicked", lambda e: display_request(e))
+            register_history(self)
 
     def _set_selection(self, mode=None):
         row_selection = "single"
-        self._grid.options["columnDefs"][0]["headerCheckboxSelection"] = False
-        self._grid.options["columnDefs"][0]["headerCheckboxSelectionFilteredOnly"] = True
-        self._grid.options["columnDefs"][0]["checkboxSelection"] = False
+        self.grid.options["columnDefs"][0]["headerCheckboxSelection"] = False
+        self.grid.options["columnDefs"][0]["headerCheckboxSelectionFilteredOnly"] = True
+        self.grid.options["columnDefs"][0]["checkboxSelection"] = False
         if mode is None:
             pass
         elif mode == "single":
-            self._grid.options["columnDefs"][0]["checkboxSelection"] = True
+            self.grid.options["columnDefs"][0]["checkboxSelection"] = True
         elif mode == "multiple":
             row_selection = "multiple"
-            self._grid.options["columnDefs"][0]["headerCheckboxSelection"] = True
-            self._grid.options["columnDefs"][0]["checkboxSelection"] = True
-        self._grid.options["rowSelection"] = row_selection
-        self._grid.update()
+            self.grid.options["columnDefs"][0]["headerCheckboxSelection"] = True
+            self.grid.options["columnDefs"][0]["checkboxSelection"] = True
+        self.grid.options["rowSelection"] = row_selection
+        self.grid.update()
 
     def update(self):
-        table_data = deepcopy(self._share.playbook_history)
-        for d in table_data:
-            del d["cli"]
-        self._grid.options["rowData"] = table_data
-        self._grid.update()
+        if self.grid.is_deleted is False:
+            table_data = []
+            for history in self._share.playbook_history:
+                row = {}
+                for key, value in history.items():
+                    if key != "cli":
+                        row[key] = value
+                table_data.append(row)
+            self.grid.options["rowData"] = table_data
+            self.grid.update()
+        else:
+            raise Exception("Grid is not available for update")
 
     @classmethod
     def add_history(cls, request: PlaybookRequest) -> None:
@@ -357,7 +385,7 @@ class Playbook(Tab):
         self._set_selection(mode="multiple")
         request = await SelectionConfirm(container=self._confirm, label=">REMOVE<")
         if request == "confirm":
-            rows = await self._grid.get_selected_rows()
+            rows = await self.grid.get_selected_rows()
             for row in rows:
                 for history in self._share.playbook_history:
                     if history["timestamp"] == row["timestamp"]:

@@ -84,6 +84,7 @@ async def post_answer(request: Request) -> PlainTextResponse:
             toml_fixed = toml_fixed + line + "\n"
         r = history.AnswerRequest(answer=answer, response=toml_fixed, system_info=system_info)
         history.Answer.add_history(r)
+        history.update_grids()
         for client in Client.instances.values():
             if not client.has_socket_connection:
                 continue
@@ -164,6 +165,7 @@ async def post_playbook(request: Request, name: str):
         print(command)
         await cli_instance.execute(command, wait=False)
         history.Playbook.add_history(playbook_request)
+        history.update_grids()
         for client in Client.instances.values():
             if not client.has_socket_connection:
                 continue
