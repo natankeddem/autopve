@@ -9,6 +9,7 @@ ansible-core==2.19.4
 anyio==4.11.0
 attrs==25.4.0
 bidict==0.23.1
+black==26.1.0
 certifi==2025.10.5
 cffi==2.0.0
 charset-normalizer==3.4.4
