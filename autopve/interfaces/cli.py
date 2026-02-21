@@ -2,6 +2,7 @@ import asyncio
 import contextlib
 import logging
 import shlex
+import os
 from asyncio.subprocess import PIPE, Process
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -32,8 +33,8 @@ class Result:
 
 
 class Cli:
-    def __init__(self, seperator: Union[bytes, int, None] = b"\n") -> None:
-        self.seperator: Union[bytes, None] = seperator
+    def __init__(self, separator: Union[bytes, int, None] = b"\n") -> None:
+        self.separator: Union[bytes, None] = separator
         self.stdout_raw: List[bytes] = []
         self.stderr_raw: List[bytes] = []
         self.stdout: List[str] = []
@@ -47,13 +48,13 @@ class Cli:
         self._stderr_terminals: List[el.Terminal] = []
 
     async def _wait_on_stream(self, stream: asyncio.streams.StreamReader) -> Union[str, None]:
-        if self.seperator is None:
+        if self.separator is None:
             buf = await stream.read(140)
-        elif isinstance(self.seperator, int) is True:
-            buf = await stream.read(self.seperator)
+        elif isinstance(self.separator, int) is True:
+            buf = await stream.read(self.separator)
         else:
             try:
-                buf = await stream.readuntil(self.seperator)
+                buf = await stream.readuntil(self.separator)
             except asyncio.exceptions.IncompleteReadError as e:
                 buf = e.partial
             except Exception as e:
@@ -104,11 +105,13 @@ class Cli:
     def kill(self) -> None:
         self._kill.set()
 
-    async def execute(self, command: str, max_output_lines: int = 0, wait: bool = True) -> Union[Result, Process]:
+    async def execute(self, command: str, max_output_lines: int = 0, wait: bool = True, env=None) -> Union[Result, Process]:
         self._busy = True
         c = shlex.split(command, posix=True)
         try:
-            process = await asyncio.create_subprocess_exec(*c, stdout=PIPE, stderr=PIPE)
+            if env:
+                env.update(os.environ.copy())
+            process = await asyncio.create_subprocess_exec(*c, stdout=PIPE, stderr=PIPE, env=env)
         except Exception as e:
             self._busy = False
             raise e

@@ -18,4 +18,4 @@ class Editor:
             storage.set_playbook(self.playbook, self.file, e.value)
 
         data = storage.get_playbook(self.playbook, self.file)
-        self.codemirror = ui.codemirror(data, language="YAML", theme="vscodeDark", on_change=handle_change).classes("w-full h-full")
+        self.codemirror = ui.codemirror(data, language="YAML" if self.file.endswith(".yaml") else "TOML", theme="vscodeDark", on_change=handle_change).classes("w-full h-full")

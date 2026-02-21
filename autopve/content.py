@@ -127,6 +127,7 @@ class Content:
                         self._tab["playbook"] = ui.tab(name="Playbook").classes("text-secondary justify-self-end")
                         self._tab["inventory"] = ui.tab(name="Inventory").classes("text-secondary justify-self-end")
                         self._tab["requirements"] = ui.tab(name="Requirements").classes("text-secondary justify-self-end")
+                        self._tab["ansible_cfg"] = ui.tab(name="Ansible.CFG").classes("text-secondary justify-self-end")
                         ui.separator()
                         ui.label("STATUS").classes("text-secondary text-h6")
                         self._tab["history"] = ui.tab(name="History").classes("text-secondary justify-self-end")
@@ -144,6 +145,7 @@ class Content:
             self._playbook_content = el.ContentTabPanel(self._tab["playbook"])
             self._inventory_content = el.ContentTabPanel(self._tab["inventory"])
             self._requirements_content = el.ContentTabPanel(self._tab["requirements"])
+            self._ansible_cfg_content = el.ContentTabPanel(self._tab["ansible_cfg"])
             self._history_content = el.ContentTabPanel(self._tab["history"])
             with self._playbook_content:
                 Editor(playbook=self._playbook, file="playbook.yaml")
@@ -198,6 +200,8 @@ class Content:
                             c.clear_buffers()
 
                     el.LgButton("Apply", on_click=apply_requirements)
+            with self._ansible_cfg_content:
+                Editor(playbook=self._playbook, file="ansible.cfg")
             with self._history_content:
                 self._history = Playbook(answer=self._answer)
 

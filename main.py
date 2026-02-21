@@ -162,8 +162,7 @@ async def post_playbook(request: Request, name: str):
         system_info = {"system_info": system_info}
         system_info_str = json.dumps(system_info).replace("'", '"')
         command = f"ansible-playbook data/playbooks/{name}/playbook.yaml -i data/playbooks/{name}/inventory.yaml --private-key data/id_rsa -e '{system_info_str}'"
-        print(command)
-        await cli_instance.execute(command, wait=False)
+        await cli_instance.execute(command, wait=False, env={"ANSIBLE_CONFIG": f"data/playbooks/{name}/ansible.cfg"})
         history.Playbook.add_history(playbook_request)
         history.update_grids()
         for client in Client.instances.values():
