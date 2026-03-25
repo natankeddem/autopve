@@ -178,6 +178,11 @@ class Global(Setting):
             },
             "country": {"description": "The country code in the two letter variant. For example, at, us or fr."},
             "fqdn": {"description": "The fully qualified domain name of the host. The domain part will be used as the search domain."},
+            "fqdn.source": {
+                "description": "Must be set to 'from-dhcp'. Retrieves the host name (option 12) and, if available, domain name (option 15) from the DHCP lease configuration. In this mode, the DHCP server must provide a host name, otherwise the installation will fail.",
+                "options": ["from-dhcp"],
+            },
+            "fqdn.domain": {"description": " Fallback (search) domain name to use if the DHCP server does not provide one."},
             "mailto": {"description": "The default email address for the user root."},
             "timezone": {"description": "The timezone in tzdata format. For example, Europe/Vienna or America/New_York."},
             "root-password": {"description": "The password for the root user.", "type": "str"},
