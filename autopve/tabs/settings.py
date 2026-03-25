@@ -21,10 +21,28 @@ class Setting(Tab):
             col.classes("w-[560px] items-center")
             with ui.card() as card:
                 card.classes("w-full")
+                default_input_hint_text = '''hint="Select from pulldown; or type to filter and enter unique key."'''
+
+                def on_input_value(e):
+                    select: ui.select = e.sender
+                    value = e.args
+                    is_value_unique = True
+                    for option in select.options:
+                        if value in option:
+                            is_value_unique = False
+                            break
+                    if value and is_value_unique:
+                        key_select.props('''hint="Press enter key to accept unique key value."''')
+                    else:
+                        key_select.props(default_input_hint_text)
+
                 key_select = ui.select(list(self.keys.keys()), label="key", new_value_mode="add", with_input=True)
+                key_select.on("input-value", lambda e: on_input_value(e))
                 key_select.classes("w-full")
+                key_select.props(add=default_input_hint_text, remove="hide-bottom-space")
                 with ui.row() as row:
                     row.classes("w-full items-center justify-between")
+                    row.bind_visibility_from(key_select, target_name="value")
                     with ui.row() as inner_row:
                         inner_row.classes("items-center")
                         self.help = None
